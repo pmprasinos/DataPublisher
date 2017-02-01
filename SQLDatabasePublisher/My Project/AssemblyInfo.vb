@@ -10,8 +10,8 @@ Imports System.Runtime.InteropServices
 
 <Assembly: AssemblyTitle("SQLDatabasePublisher")>
 <Assembly: AssemblyDescription("")>
-<Assembly: AssemblyCompany("")>
-<Assembly: AssemblyProduct("SQLDatabasePublisher")>
+<Assembly: AssemblyCompany("Prasinos")>
+<Assembly: AssemblyProduct("Prasinos")>
 <Assembly: AssemblyCopyright("Copyright ©  2016")>
 <Assembly: AssemblyTrademark("")>
 

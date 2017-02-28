@@ -27,14 +27,17 @@
     <MapFileExtensions>true</MapFileExtensions>
     <InstallUrl>\\SLFS01\SHARED\PRASINOS\MODS\WINDOWSFORMS\SQLUPDATER\</InstallUrl>
     <UpdateUrl>\\slfs01\shared\PRASINOS\mods\WINDOWSFORMS\SQLUpdater\</UpdateUrl>
-    <ApplicationRevision>303</ApplicationRevision>
+    <ProductName>SQLUpdater</ProductName>
+    <PublisherName>Prasinos</PublisherName>
+    <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
+    <ApplicationRevision>371</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <DefineDebug>true</DefineDebug>
@@ -66,10 +69,10 @@
     <OptionInfer>On</OptionInfer>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>AE7BD9A15B855CF0440BC60A1ACDEC8835A052C1</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>15B6896A490E5ED8DC4626CCEBD5EC577E253496</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>SQLDatabasePublisher_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>SQLDatabasePublisher_Key.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
@@ -79,6 +82,15 @@
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>SQLDatabasePublisher_Key.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="HtmlAgilityPack">
@@ -155,6 +167,8 @@
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
+    <None Include="SQLDatabasePublisher_1_TemporaryKey.pfx" />
+    <None Include="SQLDatabasePublisher_Key.pfx" />
     <None Include="SQLDatabasePublisher_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>

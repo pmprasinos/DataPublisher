@@ -29,9 +29,9 @@
     <UpdateUrl>\\slfs01\shared\PRASINOS\mods\WINDOWSFORMS\SQLUpdater\</UpdateUrl>
     <ProductName>SQLUpdater</ProductName>
     <PublisherName>Prasinos</PublisherName>
-    <MinimumRequiredVersion>1.0.0.414</MinimumRequiredVersion>
+    <MinimumRequiredVersion>1.0.0.416</MinimumRequiredVersion>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>415</ApplicationRevision>
+    <ApplicationRevision>418</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -132,7 +132,6 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
     <Compile Include="Module1.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">

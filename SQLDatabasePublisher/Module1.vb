@@ -6,17 +6,12 @@ Imports System.Threading.Thread
 Imports Microsoft.Office.Interop
 
 Module module1
-    Private Downloading As Boolean = False
     Dim LogInInfo As String()
-    Dim Fuckups As Integer = 0
     Dim ConnectionString As String = "Server=SLREPORT01; Database=WFLocal; User Id=PrasinosApps; Password=Wyman123-; Connection Timeout = 5;"
-    Private tmp = My.Computer.FileSystem.SpecialDirectories.MyDocuments & "\test.temp" 'O.Path.Combine(My.Computer.FileSystem.SpecialDirectories.Temp, "snafu.fubar")
-    Public TimeToDownload As String
-    Public StartTime As String
+    Private tmp = My.Computer.FileSystem.SpecialDirectories.MyDocuments & "\test.temp"
     Dim UpdateTimes As Object()()
     '######Define debugtext for testing on suffixed tables#####
     Dim DebugText As String = ""
-
 
     Sub Main()
         Console.WriteLine("=====Do not close or disconnect from network until run complete=====")
@@ -92,10 +87,10 @@ Module module1
                 If Minute(Now) Mod 10 = 0 Then Exit Sub
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
                 UpdateStatus(1, "SUBMITTED", "TIMELINE", False)
-                    wf.GetReporthAsync("qavistes/qavistes.htm#routingandpa", "pprasinos:pprasino/ltsshtml.fex", "xtl")
-                    UpdateAppend(wf, GetWFIds(wf.GetRequests))
-                    If Environment.UserName = "DATACOLLSL" Then Exit Sub
-                End If
+                wf.GetReporthAsync("qavistes/qavistes.htm#routingandpa", "pprasinos:pprasino/ltsshtml.fex", "xtl")
+                UpdateAppend(wf, GetWFIds(wf.GetRequests))
+                If Environment.UserName = "DATACOLLSL" Then Exit Sub
+            End If
 
             If Day(Now) = 11 And DateDiff(DateInterval.Minute, GetLastUpdate("ALLOYS" & DebugText), Now) > ((60 * 24 * 15) - (12 * adj)) Then
                 ExecStoredProcedure("update wflocal..ALLOYS set ALLOY_DESCR = '347' WHERE PARTNO = '01296'", False)
@@ -160,7 +155,7 @@ Module module1
             End If
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
-            Maxage = 45 + adj
+            Maxage = 55 + adj
             Console.WriteLine("OPEN ORDERS IS " & DateDiff(DateInterval.Minute, GetLastUpdate("OPEN_ORDERS" & DebugText), Now) & " MINUTES OLD (MAX: " & Maxage.ToString() & ")")
             If DateDiff(DateInterval.Minute, GetLastUpdate("OPEN_ORDERS" & DebugText), Now()) > Maxage Then
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
@@ -189,11 +184,7 @@ Module module1
             Next
 
         Catch ex As Exception
-
-            'MsgBox(Now & vbCrLf & vbCrLf & ex.Message)
-            ' MsgBox(ex.InnerException.ToString)
             FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\log.txt", Now() & "   " & ex.Message.ToString & " || " & ex.InnerException.ToString, True)
-            '            Threading.Thread.Sleep(10000000)
             MsgBox(ex.Message.ToString)
             MsgBox(ex.InnerException.ToString)
         End Try
@@ -218,9 +209,7 @@ Module module1
     Public Function ExecStoredProcedure(Procedurename As String, IsProcedure As Boolean, Optional Params As Object() = Nothing) As Object()()
         Dim StList As New List(Of Object())
         Using cn As New SqlConnection(ConnectionString)
-            Using cmd As New SqlCommand
-                cmd.CommandText = Procedurename
-                cmd.Connection = cn
+            Using cmd As New SqlCommand(Procedurename, cn)
                 cmd.CommandType = CommandType.Text
                 If IsProcedure Then cmd.CommandType = CommandType.StoredProcedure
                 If Not IsNothing(Params) Then
@@ -231,7 +220,6 @@ Module module1
                 Try
                     cn.Open()
                     Using DR As SqlClient.SqlDataReader = cmd.ExecuteReader
-                        'DR.VisibleFieldCount
 
                         Do While DR.Read
                             Dim h(DR.VisibleFieldCount) As Object
@@ -277,9 +265,8 @@ Module module1
         wfLogin(wf)
         Dim PARTLIST As New List(Of String)
         Using cn As New SqlConnection(ConnectionString)
-            Using cmd As New SqlCommand
+            Using cmd As New SqlCommand("", cn)
                 cmd.CommandText = "Select DISTINCT PARTNO FROM WFLOCAL..CERT_ERRORS WHERE ISNULL(DAYS_IN_WC, 49) < 50 And PARTNO Not Like '%S'"
-                cmd.Connection = cn
                 cn.Open()
                 Using DR As SqlClient.SqlDataReader = cmd.ExecuteReader
                     Do While DR.Read
@@ -297,7 +284,6 @@ Module module1
                 Dim PART As String = PARTLIST(I)
                 PART = Trim(PART)
                 Dim WipHistoryRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23wipandshopco&IBIMR_fex=pprasino/wo_move_history_8ball_for_sql.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/workorder_moves.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&PARTNO=" & PART & "&WORP_MPV=ab_gbv&&IBIMR_random=13866&"
-                Console.WriteLine(PARTLIST.IndexOf(PART) & "   " & PART)
                 wf.GetReporthAsync(WipHistoryRef, "wiphist")
                 UpdateAppend(wf, GetWFIds(wf.GetRequests))
                 wf = Nothing
@@ -346,7 +332,6 @@ Module module1
 
     Private Function GetUserPasswordandFex() As String()
         Dim h As New Random
-
         Dim Usernames() As String = {"hfaizi", "mreyes", "MALMARAZ", "MARJMAND", "HYANG", "GWONG", "VDELACRUZ", "JTIBAYAN", "JSOLIS", "ASINGH", "GREYES", "JPIMENTEL", "TOSULLIVAN", "MMARTIN", "VLOPEZ", "SLI", "JIMPERIAL", "JHERNANDEZ", "FHARO", "CGOUTAMA", "HGOMEZ", "EGONZALEZ", "CDAROSA"}
 
         Dim y As Integer = h.Next(0, Usernames.Length)
@@ -359,9 +344,7 @@ Module module1
         Else
             ps = ChrW(87) & ChrW(121) & ChrW(109) & ChrW(97) & ChrW(110) & ChrW(49) & ChrW(50) & ChrW(51) & ChrW(45)
         End If
-        Debug.Print(Usernames(y))
         Return {Usernames(y), ps, FexAdd}
-
     End Function
 
 
@@ -399,19 +382,16 @@ Module module1
     End Function
 
     Private Function NotificationEmails() As Int16
-
         Dim RawPull() As String = Split(FileIO.FileSystem.ReadAllText("\\slfs01\shared\prasinos\8ball\Notifications\Notifications.txt"), vbCrLf)
-
         Dim WOList As New List(Of String)
-
 
         Using cn As New SqlConnection(ConnectionString)
             Using cmd As New SqlCommand
                 cmd.CommandText = "select * from wflocal..NOTIFICATIONS a 
                                     left join wflocal..CERT_ERRORS b
                                     on a.WORKORDERNO=b.WORKORDERNO
-                                    where a.OPERATIONNO<b.OPERATION
-                                   "
+                                    where a.OPERATIONNO<b.OPERATION"
+
                 cmd.Connection = cn
                 cn.Open()
                 Using DR As SqlClient.SqlDataReader = cmd.ExecuteReader
@@ -442,14 +422,10 @@ Module module1
 
         Dim OutLookApp As New Outlook.Application
         Dim Mail As Outlook.MailItem = OutLookApp.CreateItem(Outlook.OlItemType.olMailItem)
-
         Dim mailRecipient As Outlook.Recipient
-
         mailRecipient = Mail.Recipients.Add(Recipient)
         mailRecipient.Resolve()
-
         Mail.Recipients.ResolveAll()
-
         Mail.HTMLBody = MessageBody
         Mail.Subject = Subject
         Mail.Save()
@@ -461,18 +437,6 @@ Module module1
 
     End Sub
 
-    Private Sub RemoveTicket(TicketID As String)
-        FileIO.FileSystem.CopyFile("\\slfs01\shared\prasinos\8ball\Notifications\Notifications.txt", My.Computer.FileSystem.SpecialDirectories.Desktop & "\Notifications.txt", True)
-
-        Dim OutString As String = ""
-        Dim instring() As String = Split(FileIO.FileSystem.ReadAllText(My.Computer.FileSystem.SpecialDirectories.Desktop & "\Notifications.txt"), vbCrLf)
-        For Each textline In instring
-            If InStr(textline, TicketID) = 0 Then OutString = OutString & textline & vbCrLf
-        Next textline
-
-
-        FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\Notifications\Notifications.txt", OutString, False)
-    End Sub
 
     Private Sub UpdateAppend(WF As WebfocusDLL.WebfocusModule, RespNames() As String)
         Dim tab As String = ""
@@ -484,8 +448,6 @@ Module module1
             Try
                 Using cmd As New SqlCommand("", cn)
                     cmd.CommandTimeout = 5
-
-
                     cmd.CommandType = CommandType.Text
                     If InStr(WF.GetRequests, "lots") <> 0 Then
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.CERT_ERRORS SET ACTIVE = 2 WHERE ACTIVE <> 0"
@@ -622,7 +584,6 @@ Module module1
                                 .Add("@ACTIVE", SqlDbType.Int).Value = 1
                             End With
                             cmd.ExecuteNonQuery()
-
                             CT = CT + 1
                             Console.CursorLeft = 0
                             Console.Write(CT & "/" & j.length & "        ")
@@ -655,7 +616,6 @@ NEXTP:
 
 
     Sub OpensUpdater(wf As WebfocusModule)
-        Dim cdataset As New DataSet
 
         Dim j As Object = wf.GetResponse("opens").Response
         UpdateStatus(2, "RECIEVED", "OPEN_ORDERS", False)
@@ -663,15 +623,13 @@ NEXTP:
             Try
                 cn.Open()
                 Using cmd As New SqlCommand("", cn)
-                    cmd.Connection = cn
-                    cmd.CommandTimeout = 50
-                    Dim Query As String = "UPDATE wflocal.dbo.OPEN_ORDERS Set ACTIVE = 2 WHERE ACTIVE <> 0"
-                    cmd.CommandText = Query
-                    cmd.ExecuteNonQuery()
+                    cmd.CommandTimeout = 5
 
-                    Query = "Select column_name, data_type FROM WFLOCAL.INFORMATION_SCHEMA.COLUMNS" & vbCrLf &
-                            "WHERE WFLOCAL.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME='OPEN_ORDERS'"
-                    cmd.CommandText = Query
+                    cmd.CommandText = "UPDATE wflocal.dbo.OPEN_ORDERS Set ACTIVE = 2 WHERE ACTIVE <> 0"
+                    cmd.ExecuteNonQuery()
+                    cmd.CommandText = " Select column_name, data_type 
+                                        FROM WFLOCAL.INFORMATION_SCHEMA.COLUMNS
+                                        WHERE WFLOCAL.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME ='OPEN_ORDERS'"
 
                     Dim ColumnInfo As New List(Of String())
                     Dim ColNumbers As New List(Of Integer)
@@ -685,13 +643,9 @@ NEXTP:
                         End While
                     End Using
 
-                    Dim QueryRoot As String = ""
-
                     For RowNum = 1 To j.length - 1
                         With cmd.Parameters
-                            Query = QueryRoot
                             .Clear()
-
                             For Each Col In ColumnInfo
                                 If Col(1) = "nvarchar" Then
                                     .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
@@ -720,42 +674,36 @@ NEXTP:
                     cmd.CommandType = CommandType.Text
                     cmd.CommandText = "UPDATE wflocal.dbo.OPEN_ORDERS SET ACTIVE = 0 WHERE ACTIVE = 2"
                     cmd.ExecuteNonQuery()
-                    cmd.CommandText = "INSERT INTO WFLOCAL.DBO.PO_REVIEW  (SALES_ORDER_NO, CUST_NO, SALES, USERNAME, ttimestamp, prel, pship, erel, eship)" & vbCrLf &
-                                    "Select DISTINCT B.SALES_ORDER_NO, B.CUSTOMER_NO, B.ADDED_BY, B.ADDED_BY, getdate(), 1, 1, 1, 1" & vbCrLf &
-                                    "From DBO.OPEN_ORDERS B" & vbCrLf &
-                                    "Where Not EXISTS(SELECT distinct  B.SALES_ORDER_NO" & vbCrLf &
-                                    "From DBO.PO_REVIEW" & vbCrLf &
-                                    "Where PO_REVIEW.SALES_ORDER_NO = B.SALES_ORDER_NO" & vbCrLf &
-                                    ")" & vbCrLf &
-                                    "" & vbCrLf
+                    cmd.CommandText = "INSERT INTO WFLOCAL.DBO.PO_REVIEW  (SALES_ORDER_NO, CUST_NO, SALES, USERNAME, ttimestamp, prel, pship, erel, eship)
+                                    Select DISTINCT B.SALES_ORDER_NO, B.CUSTOMER_NO, B.ADDED_BY, B.ADDED_BY, getdate(), 1, 1, 1, 1
+                                    From DBO.OPEN_ORDERS B
+                                    Where Not EXISTS(Select distinct  B.SALES_ORDER_NO
+                                    From DBO.PO_REVIEW
+                                    Where PO_REVIEW.SALES_ORDER_NO = B.SALES_ORDER_NO)"
                     cmd.ExecuteNonQuery()
                     cmd.Parameters.Clear()
                     cmd.CommandType = CommandType.StoredProcedure
                     cmd.CommandText = "wflocal.dbo.CleanTickets"
                     cmd.ExecuteNonQuery()
                 End Using
-                ' trans.Commit()
                 Console.CursorLeft = 20
                 Console.WriteLine("OPEN_ORDERS" & " UPDATED Using " & "opens")
             Catch ex As Exception
-                MsgBox("Commit Exception Type: {0}", ex.GetType().ToString)
-                MsgBox("  Message: {0}", ex.Message.ToString)
+                MsgBox(ex.GetType().ToString)
+                MsgBox(ex.Message.ToString)
                 MsgBox(ex.InnerException.ToString)
-
             End Try
         End Using
         UpdateStatus(3, "UPDATED", "OPEN_ORDERS", False)
     End Sub
 
     Private Function GetColumnNumber(InputTable()() As String, ColumLabel As String) As Integer
-
         Dim x As Integer = 0
         Do While ColumLabel <> InputTable(0)(x) And x < UBound(InputTable(0))
             x = x + 1
         Loop
         If x = UBound(InputTable(0)) And ColumLabel <> InputTable(0)(x) Then
             Return -1
-            Debug.Print(ColumLabel)
         Else
             Return x
         End If

@@ -59,5 +59,25 @@ Namespace My.Resources
                 resourceCulture = value
             End Set
         End Property
+        
+        '''<summary>
+        '''  Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        '''</summary>
+        Friend ReadOnly Property Gakuseisean_Ivista_2_Misc_Upload_Database() As System.Drawing.Icon
+            Get
+                Dim obj As Object = ResourceManager.GetObject("Gakuseisean_Ivista_2_Misc_Upload_Database", resourceCulture)
+                Return CType(obj,System.Drawing.Icon)
+            End Get
+        End Property
+        
+        '''<summary>
+        '''  Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        '''</summary>
+        Friend ReadOnly Property Icon1() As System.Drawing.Icon
+            Get
+                Dim obj As Object = ResourceManager.GetObject("Icon1", resourceCulture)
+                Return CType(obj,System.Drawing.Icon)
+            End Get
+        End Property
     End Module
 End Namespace

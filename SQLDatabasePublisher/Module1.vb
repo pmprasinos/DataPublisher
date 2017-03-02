@@ -22,6 +22,24 @@ Module module1
         Console.WriteLine("=====Do not close or disconnect from network until run complete=====")
         Console.WriteLine()
         Console.WriteLine("Started at " & Now)
+        If UCase(Environment.MachineName) <> "DATACOLLSL" Then NotificationEmails()
+
+        Dim t As Date = Now
+        Dim IsUser As Boolean = False
+        Dim beforedate As String = MakeWebfocusDate(Today.AddDays(1))
+        Dim afterdate As String = MakeWebfocusDate(Today)
+        If Hour(Now) < 3 Then afterdate = MakeWebfocusDate(Today.AddDays(-10))
+        UpdateTimes = ExecStoredProcedure("wflocal..getlastupdate", True)
+
+        Dim adj As Integer = 0
+        If (Hour(Now) >= 18 Or Hour(Now) <= 5) Then adj = 60
+
+        If UCase(Environment.UserName) <> "DATACOLLSL" Then
+            adj = adj + 5
+            afterdate = MakeWebfocusDate(Today.AddDays(-4))
+        Else
+            adj = adj - 5
+        End If
 
         If Environment.MachineName = "SLREPORT01" Or UCase(Environment.UserName) = "DATACOLLSL" Then
             If CheckIfRunning("SQLDatabasePublisher") <> 1 And Minute(Now) <> 30 Then
@@ -33,26 +51,24 @@ Module module1
                 FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\Logs.txt", Now() & "    EXCEL caused shutdown", True)
                 If CheckIfRunning("EXCEL") > 0 And UCase(Environment.MachineName) = "SLREPORT01" Then System.Diagnostics.Process.Start("shutdown", "-r -f -t 00")
             End If
+        Else
+            IsUser = True
+            Console.Write("Enter FromDate using format 'MMDDYYYY': ")
+            afterdate = Console.ReadLine
+            Console.Write("   Enter ToDate using format 'MMDDYYYY': " & MakeWebfocusDate(Today))
+            Console.CursorLeft = Console.CursorLeft - 8
+            beforedate = Console.ReadLine()
+            If beforedate = "" Then beforedate = MakeWebfocusDate(Today)
+            Console.WriteLine("Type 'Y' to delete and replace (else refresh)")
+            If Console.ReadKey.KeyChar = "Y" Then
+
+            End If
+            UpdateTimes(0)(0) = "OPEN_ORDERS" : UpdateTimes(0)(1) = DateValue(afterdate)
+            UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = DateValue(afterdate)
+            UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = DateValue(afterdate)
+            UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = DateValue(afterdate)
         End If
         Try
-            UpdateTimes = ExecStoredProcedure("wflocal..getlastupdate", True)
-            If UCase(Environment.MachineName) <> "DATACOLLSL" Then NotificationEmails()
-
-            Dim t As Date = Now
-
-            Dim beforedate As String = MakeWebfocusDate(Today.AddDays(1))
-            Dim afterdate As String = MakeWebfocusDate(Today)
-            If Hour(Now) < 3 Then afterdate = MakeWebfocusDate(Today.AddDays(-10))
-
-            Dim adj As Integer = 0
-            If (Hour(Now) >= 18 Or Hour(Now) <= 5) Then adj = 60
-
-            If UCase(Environment.UserName) <> "DATACOLLSL" Then
-                adj = adj + 5
-                afterdate = MakeWebfocusDate(Today.AddDays(-4))
-            Else
-                adj = adj - 5
-            End If
 
             Dim wf As New WebfocusModule
             wf = wfLogin(wf, True)
@@ -92,6 +108,7 @@ Module module1
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
             Maxage = 14 + adj
+            If Hour(Now) < 12 Then Maxage = 30
             Console.WriteLine("SHIPMENTS IS " & DateDiff(DateInterval.Minute, GetLastUpdate("SHIPMENTS" & DebugText), Now) & " MINUTES OLD (MAX: " & Maxage.ToString & ")")
             If DateDiff(DateInterval.Minute, GetLastUpdate("SHIPMENTS" & DebugText), Now) > Maxage Then
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
@@ -101,19 +118,19 @@ Module module1
             End If
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
-            Maxage = 15 + adj
+            Maxage = 16 + adj
             Console.WriteLine("WIP IS " & DateDiff(DateInterval.Minute, GetLastUpdate("CERT_ERRORS" & DebugText), Now) & " MINUTES OLD (MAX: " & Maxage.ToString & ")")
             If DateDiff(DateInterval.Minute, GetLastUpdate("CERT_ERRORS" & DebugText), Now) > Maxage Then
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
                 wf.GetReporthAsync("qavistes/qavistes.htm#salesshipmen", "pprasinos:pprasino/fingoodshtml.fex", "fingoods")
                 wf.GetReporthAsync("qavistes/qavistes.htm#wipandshopco", "pprasinos:pprasino/customlotshtml.fex", "lots")
-                UpdateStatus(1, "SUBMITTED - LOTSANDFINGOODS", "CERT_ERRORS", False)
+                UpdateStatus(1, " SUBMITTED - LOTSANDFINGOODS", "CERT_ERRORS", False)
                 UpdateAppend(wf, GetWFIds(wf.GetRequests))
             End If
 
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
-            Maxage = 60 + (2 * adj)
+            Maxage = 70 + (2 * adj)
             Console.WriteLine("TPUT IS " & DateDiff(DateInterval.Minute, GetLastUpdate("TPUT" & DebugText), Now) & " MINUTES OLD (MAX: " & Maxage.ToString() & ")")
             If DateDiff(DateInterval.Minute, GetLastUpdate("TPUT" & DebugText), Now) > Maxage Then
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
@@ -157,7 +174,7 @@ Module module1
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
                 Console.WriteLine("UPDATING CDCS DATA")
                 wf.GetReporthAsync("qavistes/qavistes.htm#certificateo", "pprasinos:pprasino/sl_wipfg_quality_check_inspbeyondhtml.fex", "certs")
-                UpdateStatus(1, "SUBMITTED - CERTS", "CERT_ERRORS", False)
+                UpdateStatus(1, " SUBMITTED - CERTS", "CERT_ERRORS", False)
                 UpdateAppend(wf, GetWFIds(wf.GetRequests))
             End If
 
@@ -185,6 +202,7 @@ Module module1
 
 
     Public Function GetLastUpdate(TableName As String) As Date
+        GetLastUpdate = #1/1/2000#
         If IsNothing(UpdateTimes) Then Exit Function
         For x = 0 To UpdateTimes.Length - 1
             If UCase(UpdateTimes(x)(0)) = UCase(TableName) Then Return UpdateTimes(x)(1)
@@ -243,7 +261,6 @@ Module module1
     Private Function wfLogin(wf As WebfocusModule, Optional CredentialsOnly As Boolean = False) As WebfocusModule
         If IsNothing(wf) Then wf = New WebfocusModule
         If Not wf.IsLoggedIn Then
-
             LogInInfo = GetUserPasswordandFex()
             If Not CredentialsOnly Then
                 wf.LogIn("pprasinos", "Wyman123-")
@@ -253,14 +270,10 @@ Module module1
                 Loop
             End If
         End If
-
         Return wf
     End Function
 
-    Private Function FullUpdate(wf As WebfocusModule)
-        Dim afterDate As String
-        Dim beforeDate As String
-
+    Private Sub FullUpdate(wf As WebfocusModule)
         wfLogin(wf)
         Dim PARTLIST As New List(Of String)
         Using cn As New SqlConnection(ConnectionString)
@@ -279,7 +292,6 @@ Module module1
         End Using
         PARTLIST.Sort()
 
-
         For I = 0 To PARTLIST.Count - 1 Step 1
             Try
                 Dim PART As String = PARTLIST(I)
@@ -287,16 +299,13 @@ Module module1
                 Dim WipHistoryRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23wipandshopco&IBIMR_fex=pprasino/wo_move_history_8ball_for_sql.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/workorder_moves.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&PARTNO=" & PART & "&WORP_MPV=ab_gbv&&IBIMR_random=13866&"
                 Console.WriteLine(PARTLIST.IndexOf(PART) & "   " & PART)
                 wf.GetReporthAsync(WipHistoryRef, "wiphist")
-                'Threading.Thread.Sleep(5000)
                 UpdateAppend(wf, GetWFIds(wf.GetRequests))
-                ' Threading.Thread.Sleep(1000)
                 wf = Nothing
                 wf = New WebfocusModule
                 wf.LogIn("PPRASINOS", "Wyman123-")
             Catch EX1 As Exception
                 Stop
             End Try
-
         Next
 
 
@@ -326,7 +335,7 @@ Module module1
 
         'Next q
 
-    End Function
+    End Sub
 
 
     Private Function GetPingMs(ByRef hostNameOrAddress As String)
@@ -466,30 +475,23 @@ Module module1
     End Sub
 
     Private Sub UpdateAppend(WF As WebfocusDLL.WebfocusModule, RespNames() As String)
-        'Threading.Thread.Sleep(60000)
-        Dim trans As SqlTransaction
-        Dim tab As String
+        Dim tab As String = ""
         Dim RefFind() As String = {"ships", "fingoods", "lots", "certs", "scrap", "partdata", "xtl", "tput", "labor", "labor1", "wiphist"}
         Dim TableNames() As String = {"SHIPMENTS", "CERT_ERRORS", "CERT_ERRORS", "CERT_ERRORS", "SCRAP", "ALLOYS", "TIMELINE", "TPUT", "LABOR", "LABOR", "WIP_MOVE_HIST"}
         Dim UpdatedRows As Integer = 0
         Using cn As New SqlConnection(ConnectionString)
             cn.Open()
             Try
-                Using cmd As New SqlCommand
-                    'If IsTransaction Then trans = cn.BeginTransaction(Environment.UserName & Environment.MachineName)
-                    'If IsTransaction Then trans.Save("BeganUpdating")
-
-                    cmd.Connection = cn
-                    'If IsTransaction Then cmd.Transaction = trans
+                Using cmd As New SqlCommand("", cn)
                     cmd.CommandTimeout = 5
-                    Dim Query As String
-                    Dim TABLES() As String
-                    TABLES = TableNames
 
+
+                    cmd.CommandType = CommandType.Text
                     If InStr(WF.GetRequests, "lots") <> 0 Then
-                        cmd.CommandType = CommandType.Text
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.CERT_ERRORS SET ACTIVE = 2 WHERE ACTIVE <> 0"
                         cmd.ExecuteNonQuery()
+                    ElseIf InStr(WF.GetRequests, "ships") <> 0 Then
+                        cmd.CommandText = "UPDATE WFLOCAL.DBO.SHIPMENTS SET SALES_ORDER_NO = '100030' WHERE INVOICE_NO = '051866' "
                     End If
 
                     For P = 0 To RespNames.Length - 1
@@ -499,24 +501,16 @@ Module module1
 
                         Dim TableName As String = ""
 
-                        Dim e As Integer
-                        Dim t As Boolean
-                        ' Try
                         For ind = 0 To RefFind.Length - 1
                             If RefFind(ind) = RespNames(P) Then TableName = TableNames(ind) & DebugText
                         Next
 
                         Dim UID As Guid
-                        Try
-                            UID = UpdateStatus(2, "RECIEVED", TableName, False)
-                            Debug.Print(UID.ToString)
-                        Catch : End Try
-                        ' Console.Write(TableName)
-                        'Console.CursorLeft = 0
+                        Try : UID = UpdateStatus(2, "RECIEVED", TableName, False) : Catch : End Try
+
                         cmd.CommandType = CommandType.Text
-                        Query = "SELECT column_name, data_type FROM WFLOCAL.INFORMATION_SCHEMA.COLUMNS" & vbCrLf &
+                        cmd.CommandText = "SELECT column_name, data_type FROM WFLOCAL.INFORMATION_SCHEMA.COLUMNS" & vbCrLf &
                             "WHERE WFLOCAL.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME='" & TableName & "'"
-                        cmd.CommandText = Query
 
                         Dim ColumnInfo As New List(Of String())
                         Dim CSVColumns As String = ""
@@ -533,11 +527,8 @@ Module module1
                             End While
                         End Using
                         ColumnInfo.Add({"ACTIVE", "int", 0})
-
                         CSVColumns = CSVColumns & "ROW.ACTIVE, "
-
                         CSVUPDATE = CSVUPDATE & "ROW.ACTIVE = @ACTIVE,"
-
                         CSVColumns = Left(CSVColumns, Len(CSVColumns) - 2)
                         CSVUPDATE = Left(CSVUPDATE, Len(CSVUPDATE) - 1)
 
@@ -566,8 +557,8 @@ Module module1
                                                                 SHIP_WEIGHT = SOURCE.SHIP_WEIGHT
                                             WHEN NOT MATCHED THEN
                                                     INSERT (PARTNO,  ALLOY_DESCR,  MATERIAL_SPEC,  PART_DESCR,  PIECES_PER_MOLD,  SELLING_PRICE,  POUR_WEIGHT,  STOP_RELEASE,  PART_STATUS, ROUT_REV, SHIP_WEIGHT)
-                                                    values (@PARTNO, @ALLOY_DESCR, @MATERIAL_SPEC, @PART_DESCR, @PIECES_PER_MOLD, @SELLING_PRICE, @POUR_WEIGHT, @STOP_RELEASE, @PART_STATUS, @ROUT_REV, @SHIP_WEIGHT);
-                                                "
+                                                    values (@PARTNO, @ALLOY_DESCR, @MATERIAL_SPEC, @PART_DESCR, @PIECES_PER_MOLD, @SELLING_PRICE, @POUR_WEIGHT, @STOP_RELEASE, @PART_STATUS, @ROUT_REV, @SHIP_WEIGHT);"
+
                             cmd.CommandType = CommandType.Text
                         ElseIf TableName = "SHIPMENTS" & DebugText Then
                             cmd.CommandText = "WFLOCAL.DBO.AddShipments"
@@ -587,11 +578,8 @@ Module module1
                             With cmd.Parameters
                                 .Clear()
                                 For Each Col In ColumnInfo
-
                                     If Col(1) = "nvarchar" Or Col(1) = "nchar" Then
-
                                         .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
-
                                     ElseIf Col(1) = "float" And Col(0) <> "ACTIVE" Then
                                         Debug.Print(j(RowNum)(Col(2)))
                                         j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "R", "1")
@@ -619,14 +607,9 @@ Module module1
                                             .AddWithValue("@" & Col(0), S)
                                         End If
                                     ElseIf InStr(Col(1), "Date", CompareMethod.Text) <> 0 Then
-
                                         Dim dt As DateTime = #1/1/1900#
-
-                                        If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-
-                                        Else
+                                        If Not Replace(j(RowNum)(Col(2)), ",", "") = "." Then
                                             dt = DateTime.Parse(j(RowNum)(Col(2)))
-                                            'Debug.Print(dt.ToString)
                                             If dt.Year > 1900 Then
                                                 .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
                                             Else
@@ -640,31 +623,21 @@ Module module1
                             End With
                             cmd.ExecuteNonQuery()
 
-
                             CT = CT + 1
-
                             Console.CursorLeft = 0
                             Console.Write(CT & "/" & j.length & "        ")
-
                         Next
                         Console.CursorLeft = 20
                         Console.WriteLine(TableName & " UPDATED Using " & RespNames(P))
-
+                        tab = TableName
 NEXTP:
-                        TAB = TableName
                     Next P
-
-                    Try
-                        UpdateStatus(3, "UPDATED", tab, False)
-                    Catch : End Try
-                    '  trans.Commit()
-                    'If IsTransaction Then trans.Commit()
+                    Try : UpdateStatus(3, "UPDATED", tab, False) : Catch : End Try
 
                     If InStr(WF.GetRequests, "lots") <> 0 Then
                         cmd.CommandType = CommandType.Text
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.CERT_ERRORS Set ACTIVE = 0 WHERE ACTIVE = 2"
                         Dim RWS As Integer = cmd.ExecuteNonQuery()
-                        '    If RWS <> -1 Then Stop
                         UpdatedRows = UpdatedRows + RWS
                         cmd.CommandType = CommandType.StoredProcedure
                         cmd.CommandText = "wflocal..cleanup"
@@ -673,25 +646,15 @@ NEXTP:
                     End If
                 End Using
 
-
             Catch ex As Exception
-                ' MsgBox(ex.ToString)
-                ' MsgBox(ex.InnerException.ToString)
-                Try
-                    'If IsTransaction Then trans.Rollback("BeganUpdating")
-                Catch ex2 As Exception
-                    Console.WriteLine("Rollback Exception Type: {0}", ex2.GetType())
-                    Console.WriteLine("  Message: {0}", ex2.Message)
-                End Try
-
+                MsgBox(ex.ToString)
+                MsgBox(ex.InnerException.ToString)
             End Try
         End Using
-        '' 'If IsTransaction Then Then UpdateStatus(3, "UPDATED", "CERT_ERRORS", False)
     End Sub
 
 
     Sub OpensUpdater(wf As WebfocusModule)
-        'Dim trans As SqlTransaction
         Dim cdataset As New DataSet
 
         Dim j As Object = wf.GetResponse("opens").Response
@@ -700,16 +663,14 @@ NEXTP:
             Try
                 cn.Open()
                 Using cmd As New SqlCommand("", cn)
-                    ' trans = cn.BeginTransaction(Environment.UserName)
                     cmd.Connection = cn
-                    'cmd.Transaction = trans
                     cmd.CommandTimeout = 50
                     Dim Query As String = "UPDATE wflocal.dbo.OPEN_ORDERS Set ACTIVE = 2 WHERE ACTIVE <> 0"
                     cmd.CommandText = Query
                     cmd.ExecuteNonQuery()
 
                     Query = "Select column_name, data_type FROM WFLOCAL.INFORMATION_SCHEMA.COLUMNS" & vbCrLf &
-                    "WHERE WFLOCAL.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME='OPEN_ORDERS'"
+                            "WHERE WFLOCAL.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME='OPEN_ORDERS'"
                     cmd.CommandText = Query
 
                     Dim ColumnInfo As New List(Of String())
@@ -732,24 +693,18 @@ NEXTP:
                             .Clear()
 
                             For Each Col In ColumnInfo
-
                                 If Col(1) = "nvarchar" Then
                                     .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
-                                    'Query = Replace(Query, "@" & Col(0), "'" & j(RowNum)(Col(2)) & "'")
                                 ElseIf Col(1) = "float" Then
-                                    ' Debug.Print(j(RowNum)(Col(2)))
                                     .Add("@" & Col(0), SqlDbType.Float).Value = Replace(j(RowNum)(Col(2)), ",", "")
-                                    'Query = Replace(Query, "@" & Col(0), CLng(j(RowNum)(Col(2))))
                                 ElseIf Col(1) = "datetime" Then
                                     Dim dt As DateTime = DateTime.Parse(j(RowNum)(Col(2)))
-                                    'Debug.Print(dt.ToString)
                                     If dt.Year > 1900 Then
                                         .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
                                     Else
                                         dt = Now.AddYears(-100)
                                         .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
                                     End If
-                                    'Query = Replace(Query, "@" & Col(0), CLng(j(RowNum)(Col(2))))
                                 End If
                             Next Col
                             .AddWithValue("@ACTIVE", 1)
@@ -786,21 +741,10 @@ NEXTP:
                 MsgBox("Commit Exception Type: {0}", ex.GetType().ToString)
                 MsgBox("  Message: {0}", ex.Message.ToString)
                 MsgBox(ex.InnerException.ToString)
-                ' Attempt to roll back the transaction. 
-                Try
-                    'trans.Rollback()
-                Catch ex2 As Exception
-                    ' This catch block will handle any errors that may have occurred 
-                    ' on the server that would cause the rollback to fail, such as 
-                    ' a closed connection.
-                    MsgBox("Rollback Exception Type: {0}", ex2.GetType().ToString)
-                    MsgBox("  Message: {0}", ex2.Message.ToString)
-
-                End Try
 
             End Try
         End Using
-        UpdateStatus(1, "SUBMITTED", "OPEN_ORDERS", False)
+        UpdateStatus(3, "UPDATED", "OPEN_ORDERS", False)
     End Sub
 
     Private Function GetColumnNumber(InputTable()() As String, ColumLabel As String) As Integer

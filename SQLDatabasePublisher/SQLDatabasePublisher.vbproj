@@ -23,14 +23,15 @@
     <UpdateInterval>7</UpdateInterval>
     <UpdateIntervalUnits>Days</UpdateIntervalUnits>
     <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
+    <UpdateRequired>true</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <InstallUrl>\\SLFS01\SHARED\PRASINOS\MODS\WINDOWSFORMS\SQLUPDATER\</InstallUrl>
     <UpdateUrl>\\slfs01\shared\PRASINOS\mods\WINDOWSFORMS\SQLUpdater\</UpdateUrl>
     <ProductName>SQLUpdater</ProductName>
     <PublisherName>Prasinos</PublisherName>
+    <MinimumRequiredVersion>1.0.0.414</MinimumRequiredVersion>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>411</ApplicationRevision>
+    <ApplicationRevision>415</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>

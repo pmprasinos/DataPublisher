@@ -7,6 +7,7 @@ Imports Microsoft.Office.Interop
 
 Module module1
     Dim LogInInfo As String()
+    'Dim ConnectionString As String = "Server=SLPPRASINOSLT01; Database=WFLocal; User Id=PrasinosApps; Password=Wyman123-; Connection Timeout = 5;"
     Dim ConnectionString As String = "Server=SLREPORT01; Database=WFLocal; User Id=PrasinosApps; Password=Wyman123-; Connection Timeout = 5;"
     Private tmp = My.Computer.FileSystem.SpecialDirectories.MyDocuments & "\test.temp"
     Dim UpdateTimes As Object()()
@@ -17,36 +18,44 @@ Module module1
         Console.WriteLine("=====Do not close or disconnect from network until run complete=====")
         Console.WriteLine()
         Console.WriteLine("Started at " & Now)
-        If UCase(Environment.MachineName) <> "DATACOLLSL" Then NotificationEmails()
+        '  If UCase(Environment.MachineName) <> "DATACOLLSL" Then NotificationEmails()
 
         Dim t As Date = Now
         Dim IsUser As Boolean = False
-        Dim beforedate As String = MakeWebfocusDate(Today.AddDays(1))
-        Dim afterdate As String = MakeWebfocusDate(Today)
-        If Hour(Now) < 3 Then afterdate = MakeWebfocusDate(Today.AddDays(-10))
-        UpdateTimes = ExecStoredProcedure("wflocal..getlastupdate", True)
+
+        '######BeforeDate and AfterDate are the range used for shipments, labor, tput, and wip_move_hist#####
+        Dim BeforeDate As String = MakeWebfocusDate(Today.AddDays(1))
+        Dim AfterDate As String = MakeWebfocusDate(Today)
 
         Dim adj As Integer = 0
+
+        If Hour(Now) < 3 Then afterdate = MakeWebfocusDate(Today.AddDays(-5))
+        UpdateTimes = ExecStoredProcedure("wflocal..getlastupdate", True)
+
+        '#####adj is added to the database age during hours where refresh rates can be extended#####
         If (Hour(Now) >= 18 Or Hour(Now) <= 5) Then adj = 60
 
+
         If UCase(Environment.UserName) <> "DATACOLLSL" Then
-            adj = adj + 5
+            adj = adj + 15
             afterdate = MakeWebfocusDate(Today.AddDays(-4))
         Else
             adj = adj - 5
         End If
 
+        '#####if there is an error in this program more than 2 times, the DataColl computer will be restarted#####
         If Environment.MachineName = "SLREPORT01" Or UCase(Environment.UserName) = "DATACOLLSL" Then
-            If CheckIfRunning("SQLDatabasePublisher") <> 1 And Minute(Now) <> 30 Then
+            If CheckIfRunning("SQLDatabasePublisher") > 1 And Minute(Now) <> 30 Then
                 If UCase(Environment.MachineName) <> "SLPPRASINOSLT01" Then Exit Sub
-            ElseIf CheckIfRunning("SQLDatabasePublisher") > 2 Then
+            ElseIf Environment.MachineName = "DATACOLLSL" Then
                 System.Diagnostics.Process.Start("shutdown", "-r -f -t 00")
-            ElseIf CheckIfRunning("EXCEL") > 0 Then
+            ElseIf CheckIfRunning("EXCEL") > 0 And Environment.MachineName = "SLREPORT01" Then
                 If UCase(Environment.MachineName) = "SLREPORT01" Then Threading.Thread.Sleep(120000)
                 FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\Logs.txt", Now() & "    EXCEL caused shutdown", True)
                 If CheckIfRunning("EXCEL") > 0 And UCase(Environment.MachineName) = "SLREPORT01" Then System.Diagnostics.Process.Start("shutdown", "-r -f -t 00")
             End If
         Else
+            '#####Force update if pull is not automated###
             IsUser = True
             Console.Write("Enter FromDate using format 'MMDDYYYY': ")
             afterdate = Console.ReadLine
@@ -65,23 +74,21 @@ Module module1
         End If
         Try
 
+            '#####define refrences for the reports#####
             Dim wf As New WebfocusModule
-            wf = wfLogin(wf, True)
-
-            Dim ScrapRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23scrapdatatqg&IBIMR_fex=pprasino/scrap_report.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/scrap_data.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&DISP_D=" & afterdate & "&LEDISP_D=" & beforedate & "&IBIMR_random=96021"
+            wfLogin(wf)
+            Dim ScrapRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23scrapdatatqg&IBIMR_fex=pprasino/scrap_report.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/scrap_data.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&DISP_D=" & AfterDate & "&LEDISP_D=" & BeforeDate & "&IBIMR_random=96021"
             ScrapRef = Replace(ScrapRef, "&IBIMR_sub_action=MR_MY_REPORT", LogInInfo(2))
-            Dim ShipRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23salesshipmen&IBIMR_fex=pprasino/full_shipreport_by_lothtml.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/shipping_data.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&SHIPPED_D=" & afterdate & "&IBIMR_random=58708"
+            Dim ShipRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23salesshipmen&IBIMR_fex=pprasino/full_shipreport_by_lothtml.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/shipping_data.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&SHIPPED_D=" & AfterDate & "&IBIMR_random=58708"
             ShipRef = Replace(ShipRef, "&IBIMR_sub_action=MR_MY_REPORT", LogInInfo(2))
-            Dim TputRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23thruputrepor&IBIMR_fex=pprasino/esh_and_tput_for_flex_for_sql.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/thruput_detail_data.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&TP_DATE_COMPELTED=" & afterdate & "&LE_TP_DATE_COMPELTED=" & beforedate & "&IBIMR_random=31846"
+            Dim TputRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23thruputrepor&IBIMR_fex=pprasino/esh_and_tput_for_flex_for_sql.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/thruput_detail_data.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&TP_DATE_COMPELTED=" & AfterDate & "&LE_TP_DATE_COMPELTED=" & BeforeDate & "&IBIMR_random=31846"
             TputRef = Replace(TputRef, "&IBIMR_sub_action=MR_MY_REPORT", LogInInfo(2))
-            Dim LaborRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23laborreporti&IBIMR_fex=pprasino/labor_part_detail_workorders_with_esh_for_sql_for_testing.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/labor_part_detail_workorders_with_esh.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&GECHARGE_DATE=" & afterdate & "&LECHARGE_DATE=" & beforedate & "&IBIMR_random=24311&"
+            Dim LaborRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23laborreporti&IBIMR_fex=pprasino/labor_part_detail_workorders_with_esh_for_sql_for_testing.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/labor_part_detail_workorders_with_esh.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&GECHARGE_DATE=" & AfterDate & "&LECHARGE_DATE=" & BeforeDate & "&IBIMR_random=24311&"
             LaborRef = Replace(LaborRef, "&IBIMR_sub_action=MR_MY_REPORT", LogInInfo(2))
             Dim Maxage As Integer
 
-            If (Day(Now) = 1 Or Day(Now) = 15) And DateDiff(DateInterval.Minute, GetLastUpdate("WIP_MOVE_HIST" & DebugText), Now) > 24 * 60 Then
-                wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1)) : FullUpdate(wf)
-            End If
 
+            '#####TIMELINE and ALLOYS tables are updated once monthly, these are big reports
             If Day(Now) = 11 And DateDiff(DateInterval.Minute, GetLastUpdate("TIMELINE" & DebugText), Now) > ((60 * 24 * 15) + (12 * adj)) Then
                 ExecStoredProcedure("update wflocal..TIMELINE set DWELL =31.6 WHERE OPERATION_NO = 20 AND PARTNO = '01296'", False)
                 If Minute(Now) Mod 10 = 0 Then Exit Sub
@@ -103,17 +110,17 @@ Module module1
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
             Maxage = 14 + adj
-            If Hour(Now) < 12 Then Maxage = 30
+            If Hour(Now) < 13 Then Maxage = Maxage + 20 'SHIPMENTS table does not need high refresh rate before 1:00PM
             Console.WriteLine("SHIPMENTS IS " & DateDiff(DateInterval.Minute, GetLastUpdate("SHIPMENTS" & DebugText), Now) & " MINUTES OLD (MAX: " & Maxage.ToString & ")")
             If DateDiff(DateInterval.Minute, GetLastUpdate("SHIPMENTS" & DebugText), Now) > Maxage Then
-                wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
+                wf = Nothing : wf = New WebfocusModule : wf = wfLogin(wf)
                 wf.GetReporthAsync(ShipRef, "ships")
                 UpdateStatus(1, "SUBMITTED", "SHIPMENTS", False)
                 UpdateAppend(wf, GetWFIds(wf.GetRequests))
             End If
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
-            Maxage = 16 + adj
+            Maxage = 18 + adj
             Console.WriteLine("WIP IS " & DateDiff(DateInterval.Minute, GetLastUpdate("CERT_ERRORS" & DebugText), Now) & " MINUTES OLD (MAX: " & Maxage.ToString & ")")
             If DateDiff(DateInterval.Minute, GetLastUpdate("CERT_ERRORS" & DebugText), Now) > Maxage Then
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
@@ -123,9 +130,8 @@ Module module1
                 UpdateAppend(wf, GetWFIds(wf.GetRequests))
             End If
 
-
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
-            Maxage = 70 + (2 * adj)
+            Maxage = 90 + adj
             Console.WriteLine("TPUT IS " & DateDiff(DateInterval.Minute, GetLastUpdate("TPUT" & DebugText), Now) & " MINUTES OLD (MAX: " & Maxage.ToString() & ")")
             If DateDiff(DateInterval.Minute, GetLastUpdate("TPUT" & DebugText), Now) > Maxage Then
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
@@ -135,7 +141,7 @@ Module module1
             End If
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
-            Maxage = 600 - (10 * adj)
+            Maxage = 720 - adj
             Console.WriteLine("LABOR IS " & DateDiff(DateInterval.Minute, GetLastUpdate("LABOR" & DebugText), Now) & " MINUTES OLD (MAX: " & Maxage.ToString() & ")")
             If DateDiff(DateInterval.Minute, GetLastUpdate("LABOR" & DebugText), Now) > Maxage Then
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
@@ -145,7 +151,7 @@ Module module1
             End If
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
-            Maxage = 600 - (10 * adj)
+            Maxage = 800 - adj
             Console.WriteLine("SCRAP IS " & DateDiff(DateInterval.Minute, GetLastUpdate("SCRAP" & DebugText), Now) & " MINUTES OLD (MAX: " & Maxage.ToString() & ")")
             If DateDiff(DateInterval.Minute, GetLastUpdate("SCRAP" & DebugText), Now) > Maxage Then
                 wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
@@ -176,8 +182,9 @@ Module module1
             Console.WriteLine()
             Console.WriteLine("Run Complete in " & (Now - t).ToString)
             Console.WriteLine()
+
             For x = 1000 To 0 Step -1
-                Threading.Thread.Sleep(20)
+                Threading.Thread.Sleep(10)
                 Console.Write("Form will close in " & CInt(x / 100) & " press any key to skip")
                 If Console.KeyAvailable Or UCase(Environment.UserName) = "DATACOLLSL" Then Exit Sub
                 Console.CursorLeft = 0
@@ -236,8 +243,11 @@ Module module1
     End Function
 
     Public Function UpdateStatus(NewStatus As Integer, NewNotes As String, TableName As String, byuid As Boolean) As Guid
+        Debug.Print("INSERT INTO WFLOCAL..PullStatus VALUES (GETDATE(), '" & TableName & "', '" & Environment.UserName & "', '" & Environment.MachineName & "', '" & NewNotes & "', " & NewStatus & ", NEWID(), GETDATE())")
         ExecStoredProcedure("INSERT INTO WFLOCAL..PullStatus VALUES (GETDATE(), '" & TableName & "', '" & Environment.UserName & "', '" & Environment.MachineName & "', '" & NewNotes & "', " & NewStatus & ", NEWID(), GETDATE())", False)
-        Return ExecStoredProcedure("Select UID from wflocal..PullStatus WHERE TABLENAME = '" & TableName & "' AND PULLNOTES = '" & NewNotes & "' AND MACHINENAME = '" & Environment.MachineName & "' AND PULLSTATUS = " & NewStatus, False)(0)(0)
+        Debug.Print("Select UID from wflocal..PullStatus WHERE TABLENAME = '" & TableName & "' AND PULLNOTES = '" & NewNotes & "' AND MACHINENAME = '" & Environment.MachineName & "' AND PULLSTATUS = " & NewStatus)
+        'Return ExecStoredProcedure("Select UID from wflocal..PullStatus WHERE TABLENAME = '" & TableName & "' AND PULLNOTES = '" & NewNotes & "' AND MACHINENAME = '" & Environment.MachineName & "' AND PULLSTATUS = " & NewStatus, False)(0)(0)
+        Return Guid.NewGuid
     End Function
 
     Public Function UpdateStatus(NewStatus As Integer, NewNotes As String, uid As String) As Guid
@@ -336,7 +346,7 @@ Module module1
 
         Dim y As Integer = h.Next(0, Usernames.Length)
         Dim ps As String
-
+        Usernames(y) = "pprasinos"
         Dim FexAdd As String = "&IBIMR_sub_action=MR_MY_REPORT"
         If Usernames(y) <> "pprasinos" Then
             FexAdd = "&IBIMR_sub_action=MR_MY_REPORT&IBIMR_proxy_id=pprasino.htm&"
@@ -449,11 +459,16 @@ Module module1
                 Using cmd As New SqlCommand("", cn)
                     cmd.CommandTimeout = 5
                     cmd.CommandType = CommandType.Text
+                    '#updates one record so that other machines do not start a pull while one is waiting for a report
                     If InStr(WF.GetRequests, "lots") <> 0 Then
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.CERT_ERRORS SET ACTIVE = 2 WHERE ACTIVE <> 0"
                         cmd.ExecuteNonQuery()
                     ElseIf InStr(WF.GetRequests, "ships") <> 0 Then
-                        cmd.CommandText = "UPDATE WFLOCAL.DBO.SHIPMENTS SET SALES_ORDER_NO = '100030' WHERE INVOICE_NO = '051866' "
+                        cmd.CommandText = "UPDATE WFLOCAL.DBO.SHIPMENTS SET INVOICE_NO = 'PACK(1).pdf' WHERE INVOICE_NO = 'PACK(1).pdf'"
+                        cmd.ExecuteNonQuery()
+                    ElseIf InStr(WF.GetRequests, "tput") Then
+                        cmd.CommandText = "UPDATE WFLOCAL.DBO.TPUT SET TPUT_VALUE = 0 WHERE ESH = 7.9144 AND WORKORDERNO = '1012548-00169' "
+                        cmd.ExecuteNonQuery()
                     End If
 
                     For P = 0 To RespNames.Length - 1
@@ -471,8 +486,8 @@ Module module1
                         Try : UID = UpdateStatus(2, "RECIEVED", TableName, False) : Catch : End Try
 
                         cmd.CommandType = CommandType.Text
-                        cmd.CommandText = "SELECT column_name, data_type FROM WFLOCAL.INFORMATION_SCHEMA.COLUMNS" & vbCrLf &
-                            "WHERE WFLOCAL.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME='" & TableName & "'"
+                        cmd.CommandText = "SELECT column_name, data_type FROM wflocal.INFORMATION_SCHEMA.COLUMNS" & vbCrLf &
+                            "WHERE wflocal.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME='" & TableName & "'"
 
                         Dim ColumnInfo As New List(Of String())
                         Dim CSVColumns As String = ""

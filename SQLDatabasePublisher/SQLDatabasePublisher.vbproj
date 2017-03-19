@@ -29,9 +29,9 @@
     <UpdateUrl>\\slfs01\shared\PRASINOS\mods\WINDOWSFORMS\SQLUpdater\</UpdateUrl>
     <ProductName>SQLUpdater</ProductName>
     <PublisherName>Prasinos</PublisherName>
-    <MinimumRequiredVersion>1.1.0.2</MinimumRequiredVersion>
+    <MinimumRequiredVersion>1.1.0.32</MinimumRequiredVersion>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
-    <ApplicationRevision>9</ApplicationRevision>
+    <ApplicationRevision>35</ApplicationRevision>
     <ApplicationVersion>1.1.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>

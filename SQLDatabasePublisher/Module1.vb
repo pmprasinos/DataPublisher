@@ -21,6 +21,8 @@ Module module1
     Dim DebugText As String = ""
     Dim IE As SHDocVw.InternetExplorer = Nothing
     Dim PullNumber As Integer = 0
+    '######WEBFOCUSPULL SET TO FALSE TO ALLOW REPORTS FROM \\slfs01\public\visdownloads  ##############
+    Dim WebFocusPull As Boolean = False
 
     Sub Main()
         'If UCase(Environment.UserName) <> "PPRASINOS" Then Exit Sub
@@ -77,10 +79,10 @@ Module module1
             End If
 
         End If
-        'UpdateTimes(0)(0) = "OPEN_ORDERS" : UpdateTimes(0)(1) = Today.AddDays(-2)
-        'UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
-        'UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
-        'UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
+        UpdateTimes(0)(0) = "OPEN_ORDERS" : UpdateTimes(0)(1) = Today.AddDays(-2)
+        UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
+        UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
+        UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
         'Try
         Dim OpensRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=custom_open_order_reportshtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=13377"
         Dim TputRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=ESH_and_TPUT_FOR_FLEX_for_sql.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=340&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&LE_TP_DATE_COMPELTED=" + BeforeDate + "&TP_DATE_COMPELTED=" + AfterDate + "&BIP_rand=21066"
@@ -91,12 +93,12 @@ Module module1
         Dim CDCSRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=sl_wipfg_quality_check_inspbeyondhtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=20390"
         Dim TimeLineRef As String = "http://webfocus/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~pprasinos%252Froutingandpa&BIP_item=ltsshtml.fex&WF_STYLE_HEIGHT=1160&WF_STYLE_WIDTH=440&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=34035"
         Dim LaborRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=Labor_Part_Detail_ESH_FOR_SQL_for_testing.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&GECHARGE_DATE=" & AfterDate & "&LECHARGE_DATE=" & BeforeDate
-        '#####define refrences for the reports#####
-        ''''''Dim wf As New WebfocusModule
-        '''''wfLogin(wf)
+        
+        If Not WebFocusPull Then
+            OpensRef = "\\slfs01\public\VisDownloads\Sales\slan_open_orders.csv"
+            ShipRef = " \\slfs01\public\VisDownloads\Sales\slan_shipments.csv"
+        End if
 
-        '''''Dim LaborRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23laborreporti&IBIMR_fex=pprasino/labor_part_detail_workorders_with_esh_for_sql_for_testing.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/labor_part_detail_workorders_with_esh.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&GECHARGE_DATE=" & AfterDate & "&LECHARGE_DATE=" & BeforeDate & "&IBIMR_random=24311&"
-        '''''LaborRef = Replace(LaborRef, "&IBIMR_sub_action=MR_MY_REPORT", LogInInfo(2))
         Dim Maxage As Integer = 0
 
 
@@ -430,7 +432,7 @@ Module module1
                 Using DR As SqlClient.SqlDataReader = cmd.ExecuteReader
                     Do While DR.Read
                         Dim MsgString As String = "This email Is to notify that lot " & DR("WORKORDERNO").ToString & " has reached Or passed operation " & DR("OPERATIONNO").ToString & Chr(10) & Chr(13) & vbCrLf & vbCrLf & "This Is an automated message"
-                        EmailFile(DR("EMAIL").ToString, MsgString, "Movement notification:  " & DR("WORKORDERNO").ToString, True)
+                        'EmailFile(DR("EMAIL").ToString, MsgString, "Movement notification:  " & DR("WORKORDERNO").ToString, True)
                         WOList.Add(DR("WORKORDERNO").ToString & "|" & DR("OPERATIONNO").ToString & "|" & DR("EMAIL").ToString)
                     Loop
                 End Using
@@ -451,24 +453,24 @@ Module module1
         Return 0
     End Function
 
-    Sub EmailFile(Recipient As String, MessageBody As String, Subject As String, Optional Send As Boolean = False)
+    'Sub EmailFile(Recipient As String, MessageBody As String, Subject As String, Optional Send As Boolean = False)
 
-        Dim OutLookApp As New Outlook.Application
-        Dim Mail As Outlook.MailItem = OutLookApp.CreateItem(Outlook.OlItemType.olMailItem)
-        Dim mailRecipient As Outlook.Recipient
-        mailRecipient = Mail.Recipients.Add(Recipient)
-        mailRecipient.Resolve()
-        Mail.Recipients.ResolveAll()
-        Mail.HTMLBody = MessageBody
-        Mail.Subject = Subject
-        Mail.Save()
-        If Send Then
-            Mail.Send()
-        Else
-            Mail.Display()
-        End If
+    '    Dim OutLookApp As New Outlook.Application
+    '    Dim Mail As Outlook.MailItem = OutLookApp.CreateItem(Outlook.OlItemType.olMailItem)
+    '    Dim mailRecipient As Outlook.Recipient
+    '    mailRecipient = Mail.Recipients.Add(Recipient)
+    '    mailRecipient.Resolve()
+    '    Mail.Recipients.ResolveAll()
+    '    Mail.HTMLBody = MessageBody
+    '    Mail.Subject = Subject
+    '    Mail.Save()
+    '    If Send Then
+    '        Mail.Send()
+    '    Else
+    '        Mail.Display()
+    '    End If
 
-    End Sub
+    'End Sub
 
     Private Function GetWFReport(ref As String) As String()()
         'Debug.Print(ref)
@@ -569,7 +571,11 @@ Module module1
 
                     If RespNames = Nothing Or RespNames = "opens" Then GoTo NEXTP
                     Dim j As New Object
+                    If WebFocusPull Then
                     j = GetWFReport(ref)
+                    Else
+                    Dim t As String() = split(FileIO.FileSystem.ReadAllText(ref), vbcrlf)
+                    End If
 
                     Dim TableName As String = ""
 
@@ -990,8 +996,12 @@ NEXTP:
     'End Sub
 
     Sub OpensUpdater(ref As String)
-
-        Dim j As Object = GetWFReport(ref)
+        Dim j As New Object 
+        If WebFocusPull Then
+            j = GetWFReport(ref)
+            Else
+            J  = FileIO.FileSystem.ReadAllText(ref)
+        End if
         UpdateStatus(2, "RECIEVED", "OPEN_ORDERS", False)
         Using cn As New SqlConnection(ConnectionString)
             Try

@@ -22,7 +22,7 @@ Module module1
     Dim IE As SHDocVw.InternetExplorer = Nothing
     Dim PullNumber As Integer = 0
     '######WEBFOCUSPULL SET TO FALSE TO ALLOW REPORTS FROM \\slfs01\public\visdownloads  ##############
-    Dim WebFocusPull As Boolean = False
+    Dim WebFocusPull As Boolean = True
 
     Sub Main()
         'If UCase(Environment.UserName) <> "PPRASINOS" Then Exit Sub
@@ -30,7 +30,14 @@ Module module1
         Console.WriteLine("=====Do not close or disconnect from network until run complete=====")
         Console.WriteLine()
         Console.WriteLine("Started at " & Now)
+        Dim theProcesses() As Process = System.Diagnostics.Process.GetProcessesByName("iexplore")
+        For Each currentProcess As Process In theProcesses
 
+            'Get the currentProcess MainWindowTitle and see if that title matches the title of the action cancelled IE instance:
+
+            currentProcess.Kill()
+
+        Next
         '  If UCase(Environment.MachineName) <> "DATACOLLSL" Then NotificationEmails()
 
         Dim t As Date = Now
@@ -57,7 +64,7 @@ Module module1
 
         '#####if there is an error in this program more than 2 times, the DataColl computer will be restarted#####
         If Environment.MachineName = "SLREPORT01" Or UCase(Environment.UserName) = "DATACOLLSL" Or UCase(Environment.UserName) = "PPRASINOS" Then
-            If CheckIfRunning("SQLDatabasePublisher") > 1 Then
+            If CheckIfRunning("SQLDatabasePublisher") > 1 Or Hour(Now) = 10 Then
                 System.Diagnostics.Process.Start("shutdown", "-r -f -t 00")
             ElseIf CheckIfRunning("EXCEL") > 0 And Environment.MachineName = "SLREPORT01" Then
                 If UCase(Environment.MachineName) = "SLREPORT01" Then Threading.Thread.Sleep(120000)
@@ -81,8 +88,8 @@ Module module1
         End If
         UpdateTimes(0)(0) = "OPEN_ORDERS" : UpdateTimes(0)(1) = Today.AddDays(-2)
         UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
-        UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
-        UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
+        'UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
+        'UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
         'Try
         Dim OpensRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=custom_open_order_reportshtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=13377"
         Dim TputRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=ESH_and_TPUT_FOR_FLEX_for_sql.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=340&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&LE_TP_DATE_COMPELTED=" + BeforeDate + "&TP_DATE_COMPELTED=" + AfterDate + "&BIP_rand=21066"
@@ -97,6 +104,9 @@ Module module1
         If Not WebFocusPull Then
             OpensRef = "\\slfs01\public\VisDownloads\Sales\slan_open_orders.csv"
             ShipRef = " \\slfs01\public\VisDownloads\Sales\slan_shipments.csv"
+            WIPRef = "\\slfs01\public\VisDownloads\WIP\slan_wip.csv"
+            FGRef = "\\slfs01\public\VisDownloads\WIP\Slan_fg.csv"
+            CDCSRef = "\\slfs01\public\VisDownloads\WIP\slan_quality_check.csv"
         End if
 
         Dim Maxage As Integer = 0
@@ -476,8 +486,8 @@ Module module1
         'Debug.Print(ref)
         ' Debug.Print("")
         Dim doc As mshtml.HTMLDocument
-        Try
-            If IsNothing(IE) Then
+        'Try
+        If IsNothing(IE) Then
                 IE = New SHDocVw.InternetExplorerMedium
                 IE.Visible = True
                 '      Sleep(1000)
@@ -496,12 +506,13 @@ Module module1
                     Do Until IE.Busy = False And IE.ReadyState = 4 : Debug.Print(IE.ReadyState) : Debug.Print(IE.Busy) : Sleep(40) : Loop : Sleep(500)
                 Next x
             End If
-
+            Sleep(4000)
             IE.Navigate(ref)
 
             For X = 0 To 10
-                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(10) : Loop : Sleep(100)
+                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(10) : Loop : Sleep(10)
             Next X
+
             doc = IE.Document
             Dim i As Integer = 0
             Debug.Print(doc.all.length)
@@ -511,16 +522,16 @@ Module module1
                     Dim element As Object = doc.all(i)
                     Try
                         If Not IsNothing(element.innerhtml) Then
-                            'If Not IsNothing(element.id) Then Debug.Print("ID:  " & element.id)
+                            ' If Not IsNothing(element.id) Then Debug.Print("ID:  " & element.id)
                             ' If Not IsNothing(element.title) Then Debug.Print("TITLE:  " & element.title)
                             If InStr(element.innerhtml, "win.document.form1.action = ") > 0 Then
                                 Dim RepURL As String = "http://webfocus" & Split(Split(element.innerhtml, "win.document.form1.action = " & Chr(34))(1), Chr(34) & ";")(0)
                                 'Debug.Print(RepURL)
                                 IE.Navigate(RepURL)
                                 For X = 0 To 10
-                                    Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(500)
+                                    Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(10)
                                 Next X
-                                Threading.Thread.Sleep(1000)
+                                Threading.Thread.Sleep(100)
                                 i = 1000000
                             End If
                         End If
@@ -530,18 +541,18 @@ Module module1
                 Loop
             End If
             For X = 0 To 10
-                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(500)
+                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(10)
             Next X
             doc = IE.Document
             Dim doc1 As String = doc.body.outerHTML
             IE.Navigate("http://webfocus.pccstructurals.com/ibi_apps/bip/portal/PCCStructuralsInc")
 
             Return ClassLibrary1.HTMLProcessor.ParseHtml(doc1)
-        Catch ex As Exception
+            'Catch ex As Exception
             IE.Visible = True
 
-            FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\updater\error" & Day(Now) & Hour(Now) & Minute(Now) & ".txt", "ERROR ON LINE " & Erl() & vbCrLf & vbCrLf & ex.Message.ToString & vbCrLf & vbCrLf & vbCrLf & ex.InnerException.ToString, True)
-        End Try
+            'FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\updater\error" & Day(Now) & Hour(Now) & Minute(Now) & ".txt", "ERROR ON LINE " & Erl() & vbCrLf & vbCrLf & ex.Message.ToString & vbCrLf & vbCrLf & vbCrLf & ex.InnerException.ToString, True)
+        'End Try
     End Function
 
 
@@ -552,8 +563,8 @@ Module module1
         Dim UpdatedRows As Integer = 0
         Using cn As New SqlConnection(ConnectionString)
             cn.Open()
-            Try
-                Using cmd As New SqlCommand("", cn)
+            ' Try
+            Using cmd As New SqlCommand("", cn)
                     cmd.CommandTimeout = 5
                     cmd.CommandType = CommandType.Text
                     '#updates one record so that other machines do not start a pull while one is waiting for a report
@@ -572,9 +583,21 @@ Module module1
                     If RespNames = Nothing Or RespNames = "opens" Then GoTo NEXTP
                     Dim j As New Object
                     If WebFocusPull Then
-                    j = GetWFReport(ref)
-                    Else
-                    Dim t As String() = split(FileIO.FileSystem.ReadAllText(ref), vbcrlf)
+                        j = GetWFReport(ref)
+                        Dim headerst As String = ""
+                        For Each s As String In j(0)
+                            headerst = headerst & s & ","
+                        Next
+                        headerst = Left(headerst, (Len(headerst) - 1)) & vbCrLf
+                    If Environment.MachineName = "SLPPRASINOSLT01" Then FileIO.FileSystem.WriteAllText("\\slfs01\public\VisDownloads\" & RespNames & ".csv", headerst, False)
+                Else
+
+                        Dim t As String() = Split(FileIO.FileSystem.ReadAllText(ref), vbCrLf)
+                        Dim TempList As New List(Of String())
+                        For Each s In t
+                            TempList.Add(Split(s, ","))
+                        Next
+                        j = TempList.ToArray
                     End If
 
                     Dim TableName As String = ""
@@ -723,10 +746,10 @@ NEXTP:
                     End If
                 End Using
 
-            Catch ex As Exception
-                MsgBox(ex.ToString)
-                MsgBox(ex.InnerException.ToString)
-            End Try
+            'Catch ex As Exception
+            '    MsgBox(Erl() & ex.ToString)
+            '    MsgBox(ex.InnerException.ToString)
+            'End Try
         End Using
     End Sub
 

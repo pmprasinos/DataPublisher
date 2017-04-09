@@ -22,7 +22,7 @@ Module module1
     Dim IE As SHDocVw.InternetExplorer = Nothing
     Dim PullNumber As Integer = 0
     '######WEBFOCUSPULL SET TO FALSE TO ALLOW REPORTS FROM \\slfs01\public\visdownloads  ##############
-    Dim WebFocusPull As Boolean = False
+    Dim WebFocusPull As Boolean = True
 
     Sub Main()
         'If UCase(Environment.UserName) <> "PPRASINOS" Then Exit Sub
@@ -30,7 +30,14 @@ Module module1
         Console.WriteLine("=====Do not close or disconnect from network until run complete=====")
         Console.WriteLine()
         Console.WriteLine("Started at " & Now)
+        Dim theProcesses() As Process = System.Diagnostics.Process.GetProcessesByName("iexplore")
+        For Each currentProcess As Process In theProcesses
 
+            'Get the currentProcess MainWindowTitle and see if that title matches the title of the action cancelled IE instance:
+
+            currentProcess.Kill()
+
+        Next
         '  If UCase(Environment.MachineName) <> "DATACOLLSL" Then NotificationEmails()
 
         Dim t As Date = Now
@@ -57,7 +64,7 @@ Module module1
 
         '#####if there is an error in this program more than 2 times, the DataColl computer will be restarted#####
         If Environment.MachineName = "SLREPORT01" Or UCase(Environment.UserName) = "DATACOLLSL" Or UCase(Environment.UserName) = "PPRASINOS" Then
-            If CheckIfRunning("SQLDatabasePublisher") > 1 Then
+            If CheckIfRunning("SQLDatabasePublisher") > 1 Or Hour(Now) = 10 Then
                 System.Diagnostics.Process.Start("shutdown", "-r -f -t 00")
             ElseIf CheckIfRunning("EXCEL") > 0 And Environment.MachineName = "SLREPORT01" Then
                 If UCase(Environment.MachineName) = "SLREPORT01" Then Threading.Thread.Sleep(120000)
@@ -79,24 +86,31 @@ Module module1
             End If
 
         End If
-        UpdateTimes(0)(0) = "OPEN_ORDERS" : UpdateTimes(0)(1) = Today.AddDays(-2)
-        UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
-        UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
-        UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
+        'UpdateTimes(0)(0) = "OPEN_ORDERS" : UpdateTimes(0)(1) = Today.AddDays(-2)
+        'UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
+        'UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
+        'UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
         'Try
         Dim OpensRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=custom_open_order_reportshtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=13377"
         Dim TputRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=ESH_and_TPUT_FOR_FLEX_for_sql.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=340&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&LE_TP_DATE_COMPELTED=" + BeforeDate + "&TP_DATE_COMPELTED=" + AfterDate + "&BIP_rand=21066"
-        Dim ScrapRef As String = "http://webfocus/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~pprasinos%252Fscrapdatatqg&BIP_item=scrap_report.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=560&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=10000&DISP_D=" + AfterDate + "&LEDISP_D=" + BeforeDate + "0&BIP_rand=74775"
+        Dim ScrapRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=scrap_report.fex&WF_STYLE_HEIGHT=140&WF_STYLE_WIDTH=330&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&DISP_D=" + AfterDate + "&LEDISP_D=" + BeforeDate + "&BIP_rand=74775"
         Dim ShipRef As String = "Http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=full_shipreport_by_lothtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=429&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&&SHIPPED_D=" + AfterDate + "&BIP_rand=7574"
         Dim WIPRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=customlotshtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=429&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=70094"
         Dim FGRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=fingoodshtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=429&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=36829"
         Dim CDCSRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=sl_wipfg_quality_check_inspbeyondhtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=20390"
-        Dim TimeLineRef As String = "http://webfocus/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~pprasinos%252Froutingandpa&BIP_item=ltsshtml.fex&WF_STYLE_HEIGHT=1160&WF_STYLE_WIDTH=440&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=34035"
+        Dim TimeLineRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=ltsshtml.fex&WF_STYLE_HEIGHT=140&WF_STYLE_WIDTH=330&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=83356"
         Dim LaborRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=Labor_Part_Detail_ESH_FOR_SQL_for_testing.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&GECHARGE_DATE=" & AfterDate & "&LECHARGE_DATE=" & BeforeDate
         
         If Not WebFocusPull Then
             OpensRef = "\\slfs01\public\VisDownloads\Sales\slan_open_orders.csv"
+            TputRef = "\\slfs01\public\VisDownloads\TOC\slan_toc_esh.csv"
+            ScrapRef = "\\slfs01\public\VisDownloads\WIP\slan_scrap.csv"
             ShipRef = " \\slfs01\public\VisDownloads\Sales\slan_shipments.csv"
+            WIPRef = "\\slfs01\public\VisDownloads\WIP\slan_wip.csv"
+            FGRef = "\\slfs01\public\VisDownloads\WIP\Slan_fg.csv"
+            CDCSRef = "\\slfs01\public\VisDownloads\WIP\slan_quality_check.csv"
+            TimeLineRef = "\\slfs01\public\VisDownloads\Part\slan_part_lt.csv"
+            LaborRef = "\\slfs01\public\VisDownloads\Labor\slan_wo_labor.csv"
         End if
 
         Dim Maxage As Integer = 0
@@ -275,88 +289,7 @@ Module module1
         Return Guid.NewGuid
     End Function
 
-    'Public Function UpdateStatus(NewStatus As Integer, NewNotes As String, uid As String) As Guid
-    '    If uid <> "" Then ExecStoredProcedure("UPDATE WFLOCAL..PullStatus SET (TIMESTAMP = GETDATE(), PULLNOTES = '" & NewNotes & "', PULLSTATUS =" & NewStatus & "WHERE UID = '" & uid & "'", False)
-    '    Return ExecStoredProcedure("Select UID from wflocal..PullStatus WHERE uid = '" & uid & "'", False)(0)(0)
-    'End Function
-
-
-    'Private Function wfLogin(wf As WebfocusModule, Optional CredentialsOnly As Boolean = False) As WebfocusModule
-    '    If IsNothing(wf) Then wf = New WebfocusModule
-    '    If Not wf.IsLoggedIn Then
-    '        LogInInfo = GetUserPasswordandFex()
-    '        If Not CredentialsOnly Then
-    '            wf.LogIn("pprasinos", "Wyman123-")
-    '            Do Until wf.IsLoggedIn
-    '                LogInInfo = GetUserPasswordandFex()
-    '                wf.LogIn(LogInInfo(0), LogInInfo(1))
-    '            Loop
-    '        End If
-    '    End If
-    '    Return wf
-    'End Function
-
-    'Private Sub FullUpdate(wf As WebfocusModule)
-    '    wfLogin(wf)
-    '    Dim PARTLIST As New List(Of String)
-    '    Using cn As New SqlConnection(ConnectionString)
-    '        Using cmd As New SqlCommand("", cn)
-    '            cmd.CommandText = "Select DISTINCT PARTNO FROM WFLOCAL..CERT_ERRORS WHERE ISNULL(DAYS_IN_WC, 49) < 50 And PARTNO Not Like '%S'"
-    '            cn.Open()
-    '            Using DR As SqlClient.SqlDataReader = cmd.ExecuteReader
-    '                Do While DR.Read
-    '                    PARTLIST.Add(DR("PARTNO"))
-    '                Loop
-    '            End Using
-    '            cn.Close()
-    '            cmd.Parameters.Clear()
-    '        End Using
-    '    End Using
-    '    PARTLIST.Sort()
-
-    'For I = 0 To PARTLIST.Count - 1 Step 1
-    '        Try
-    '            Dim PART As String = PARTLIST(I)
-    '            PART = Trim(PART)
-    '            Dim WipHistoryRef As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23wipandshopco&IBIMR_fex=pprasino/wo_move_history_8ball_for_sql.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/workorder_moves.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&PARTNO=" & PART & "&WORP_MPV=ab_gbv&&IBIMR_random=13866&"
-    '            wf.GetReporthAsync(WipHistoryRef, "wiphist")
-    '            UpdateAppend(wf, GetWFIds(wf.GetRequests))
-    '            wf = Nothing
-    '            wf = New WebfocusModule
-    '            wf.LogIn("PPRASINOS", "Wyman123-")
-    '        Catch EX1 As Exception
-    '            Stop
-    '        End Try
-    '    Next
-
-
-    'For q = 0 To 20
-    '    Console.Write(q & " ")
-    '    Dim Span As Integer = 5
-    '    beforeDate = MakeWebfocusDate(Today.AddDays(-q * Span))
-    '    afterDate = MakeWebfocusDate(Today.AddDays(-1 - ((q + 1) * Span)))
-    '    Console.WriteLine(beforeDate & "-" & afterDate)
-    '    Dim InvRef1 As String = "qavistes/qavistes.htm#wipandshopco    pprasinos:pprasino/inventorybyms.fex "
-
-    '    Dim LaborRef1 As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23laborreporti&IBIMR_fex=pprasino/labor_part_detail_workorders_with_esh_for_sql_for_testing.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/labor_part_detail_workorders_with_esh.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&GECHARGE_DATE=" & afterDate & "&LECHARGE_DATE=" & beforeDate & "&IBIMR_random=24311&"
-    '    Dim TputRef1 As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23thruputrepor&IBIMR_fex=pprasino/esh_and_tput_for_flex_for_sql.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/thruput_detail_data.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&TP_DATE_COMPELTED=" & afterDate & "&LE_TP_DATE_COMPELTED=" & beforeDate & "&IBIMR_random=31846"
-    '    Dim ScrapRef1 As String = "http://opsfocus01:8080/ibi_apps/Controller?WORP_REQUEST_TYPE=WORP_LAUNCH_CGI&IBIMR_action=MR_RUN_FEX&IBIMR_domain=qavistes/qavistes.htm&IBIMR_folder=qavistes/qavistes.htm%23scrapdatatqg&IBIMR_fex=pprasino/scrap_report_including_nodefect.fex&IBIMR_flags=myreport%2CinfoAssist%2Creport%2Croname%3Dqavistes/mrv/scrap_data.fex%2CisFex%3Dtrue%2CrunPowerPoint%3Dtrue&IBIMR_sub_action=MR_MY_REPORT&WORP_MRU=true&&WORP_MPV=ab_gbv&DISP_D=" & afterDate & "&LEDISP_D=" & beforeDate & "&IBIMR_random=96021"
-    '    TputRef1 = Replace(TputRef1, "&IBIMR_sub_action=MR_MY_REPORT", LogInInfo(2))
-
-    '    If Today.DayOfWeek = DayOfWeek.Monday Then wf.GetReporthAsync(TputRef1, "tput")
-    '    If Today.DayOfWeek = DayOfWeek.Tuesday Then wf.GetReporthAsync(ScrapRef1, "scrap")
-    '    If Today.DayOfWeek = DayOfWeek.Wednesday Then wf.GetReporthAsync(LaborRef1, "labor")
-
-    '    '  Threading.Thread.Sleep(2000)
-    '    UpdateAppend(wf, GetWFIds(wf.GetRequests))
-    '    ' Threading.Thread.Sleep(1000)
-
-    '    wf = Nothing
-    '    wf = wfLogin(wf)
-
-    'Next q
-
-    'End Sub
+   
 
 
     Private Function GetPingMs(ByRef hostNameOrAddress As String)
@@ -365,39 +298,7 @@ Module module1
         Threading.Thread.Sleep(1000)
     End Function
 
-    'Private Function GetUserPasswordandFex() As String()
-    '    Dim h As New Random
-    '    Dim Usernames() As String = {"hfaizi", "mreyes", "MALMARAZ", "MARJMAND", "HYANG", "GWONG", "VDELACRUZ", "JTIBAYAN", "JSOLIS", "ASINGH", "GREYES", "JPIMENTEL", "TOSULLIVAN", "MMARTIN", "VLOPEZ", "SLI", "JIMPERIAL", "JHERNANDEZ", "FHARO", "CGOUTAMA", "HGOMEZ", "EGONZALEZ", "CDAROSA"}
-
-    '    Dim y As Integer = h.Next(0, Usernames.Length)
-    '    Dim ps As String
-    '    Usernames(y) = "pprasinos"
-    '    Dim FexAdd As String = "&IBIMR_sub_action=MR_MY_REPORT"
-    '    If Usernames(y) <> "pprasinos" Then
-    '        FexAdd = "&IBIMR_sub_action=MR_MY_REPORT&IBIMR_proxy_id=pprasino.htm&"
-    '        ps = ChrW(112) & ChrW(97) & ChrW(115) & ChrW(115) & ChrW(50) & ChrW(48) & ChrW(49) & ChrW(53)
-    '    Else
-    '        ps = ChrW(87) & ChrW(121) & ChrW(109) & ChrW(97) & ChrW(110) & ChrW(49) & ChrW(50) & ChrW(51) & ChrW(45)
-    '    End If
-    '    Return {Usernames(y), ps, FexAdd}
-    'End Function
-
-
-    'Private Function GetWFIds(Requests As String, Optional notarray As Boolean = False) As String()
-    '    Dim k() As String = Split(Requests, vbLf)
-    '    For w = 0 To k.Length - 1
-    '        k(w) = Mid(k(w), 3, 10)
-    '        If Left(k(w), 1) <> "" Then k(w) = Right(k(w), Len(k(w)) - 1)
-    '        If Left(k(w), 1) <> "" Then k(w) = Right(k(w), Len(k(w)) - 1)
-    '        If notarray Then
-    '            k(0) = Replace(k(w), " ", "") & "  "
-    '        Else
-    '            k(w) = Replace(k(w), " ", "")
-    '        End If
-    '    Next
-    '    Return k
-
-    'End Function
+   
 
     Private Function WithinString(String1 As String, String2 As String) As Boolean
         If InStr(String1, String2, CompareMethod.Text) <> 0 Then
@@ -476,8 +377,8 @@ Module module1
         'Debug.Print(ref)
         ' Debug.Print("")
         Dim doc As mshtml.HTMLDocument
-        Try
-            If IsNothing(IE) Then
+        'Try
+        If IsNothing(IE) Then
                 IE = New SHDocVw.InternetExplorerMedium
                 IE.Visible = True
                 '      Sleep(1000)
@@ -496,12 +397,13 @@ Module module1
                     Do Until IE.Busy = False And IE.ReadyState = 4 : Debug.Print(IE.ReadyState) : Debug.Print(IE.Busy) : Sleep(40) : Loop : Sleep(500)
                 Next x
             End If
-
+            Sleep(4000)
             IE.Navigate(ref)
 
             For X = 0 To 10
-                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(10) : Loop : Sleep(100)
+                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(10) : Loop : Sleep(10)
             Next X
+
             doc = IE.Document
             Dim i As Integer = 0
             Debug.Print(doc.all.length)
@@ -511,16 +413,16 @@ Module module1
                     Dim element As Object = doc.all(i)
                     Try
                         If Not IsNothing(element.innerhtml) Then
-                            'If Not IsNothing(element.id) Then Debug.Print("ID:  " & element.id)
+                            ' If Not IsNothing(element.id) Then Debug.Print("ID:  " & element.id)
                             ' If Not IsNothing(element.title) Then Debug.Print("TITLE:  " & element.title)
                             If InStr(element.innerhtml, "win.document.form1.action = ") > 0 Then
                                 Dim RepURL As String = "http://webfocus" & Split(Split(element.innerhtml, "win.document.form1.action = " & Chr(34))(1), Chr(34) & ";")(0)
                                 'Debug.Print(RepURL)
                                 IE.Navigate(RepURL)
                                 For X = 0 To 10
-                                    Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(500)
+                                    Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(10)
                                 Next X
-                                Threading.Thread.Sleep(1000)
+                                Threading.Thread.Sleep(100)
                                 i = 1000000
                             End If
                         End If
@@ -530,18 +432,18 @@ Module module1
                 Loop
             End If
             For X = 0 To 10
-                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(500)
+                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(10)
             Next X
             doc = IE.Document
             Dim doc1 As String = doc.body.outerHTML
             IE.Navigate("http://webfocus.pccstructurals.com/ibi_apps/bip/portal/PCCStructuralsInc")
 
             Return ClassLibrary1.HTMLProcessor.ParseHtml(doc1)
-        Catch ex As Exception
+            'Catch ex As Exception
             IE.Visible = True
 
-            FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\updater\error" & Day(Now) & Hour(Now) & Minute(Now) & ".txt", "ERROR ON LINE " & Erl() & vbCrLf & vbCrLf & ex.Message.ToString & vbCrLf & vbCrLf & vbCrLf & ex.InnerException.ToString, True)
-        End Try
+            'FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\updater\error" & Day(Now) & Hour(Now) & Minute(Now) & ".txt", "ERROR ON LINE " & Erl() & vbCrLf & vbCrLf & ex.Message.ToString & vbCrLf & vbCrLf & vbCrLf & ex.InnerException.ToString, True)
+        'End Try
     End Function
 
 
@@ -552,8 +454,8 @@ Module module1
         Dim UpdatedRows As Integer = 0
         Using cn As New SqlConnection(ConnectionString)
             cn.Open()
-            Try
-                Using cmd As New SqlCommand("", cn)
+            ' Try
+            Using cmd As New SqlCommand("", cn)
                     cmd.CommandTimeout = 5
                     cmd.CommandType = CommandType.Text
                     '#updates one record so that other machines do not start a pull while one is waiting for a report
@@ -572,9 +474,22 @@ Module module1
                     If RespNames = Nothing Or RespNames = "opens" Then GoTo NEXTP
                     Dim j As New Object
                     If WebFocusPull Then
-                    j = GetWFReport(ref)
-                    Else
-                    Dim t As String() = split(FileIO.FileSystem.ReadAllText(ref), vbcrlf)
+                        j = GetWFReport(ref)
+                        Dim headerst As String = ""
+                        For Each s As String In j(0)
+                            headerst = headerst & s & ","
+                        Next
+                        headerst = Left(headerst, (Len(headerst) - 1)) & vbCrLf
+                    'If Environment.MachineName = "SLPPRASINOSLT01" or Environment.MachineName = "SLAN-1ZNFXZ1" Then
+                     FileIO.FileSystem.WriteAllText("\\slfs01\public\VisDownloads\" & RespNames & ".csv", headerst, False)
+                Else
+
+                        Dim t As String() = Split(FileIO.FileSystem.ReadAllText(ref), vbCrLf)
+                        Dim TempList As New List(Of String())
+                        For Each s In t
+                            TempList.Add(Split(s, ","))
+                        Next
+                        j = TempList.ToArray
                     End If
 
                     Dim TableName As String = ""
@@ -723,10 +638,10 @@ NEXTP:
                     End If
                 End Using
 
-            Catch ex As Exception
-                MsgBox(ex.ToString)
-                MsgBox(ex.InnerException.ToString)
-            End Try
+            'Catch ex As Exception
+            '    MsgBox(Erl() & ex.ToString)
+            '    MsgBox(ex.InnerException.ToString)
+            'End Try
         End Using
     End Sub
 

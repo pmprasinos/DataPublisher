@@ -70,10 +70,10 @@
     <OptionInfer>On</OptionInfer>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>15B6896A490E5ED8DC4626CCEBD5EC577E253496</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>987629CAE33C1136B8C85ED65EEBA4248B083490</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>SQLDatabasePublisher_Key.pfx</ManifestKeyFile>
+    <ManifestKeyFile>SQLDatabasePublisher_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
@@ -91,14 +91,15 @@
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>SQLDatabasePublisher_Key.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Resources\Gakuseisean-Ivista-2-Misc-Upload-Database.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ClassLibrary1">
-      <HintPath>..\..\..\..\..\Source\Repos\WebfocusModule\ClassLibrary1\ClassLibrary1\bin\Debug\ClassLibrary1.dll</HintPath>
+      <HintPath>..\..\..\..\Desktop\ClassLibrary1.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>S:\Maeda\WebfocusModule\HtmlAgilityPack.dll</HintPath>
@@ -174,7 +175,7 @@
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
-    <None Include="SQLDatabasePublisher_Key.pfx" />
+    <None Include="SQLDatabasePublisher_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5.2">

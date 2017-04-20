@@ -22,7 +22,8 @@ Module module1
     Dim IE As SHDocVw.InternetExplorer = Nothing
     Dim PullNumber As Integer = 0
     '######WEBFOCUSPULL SET TO FALSE TO ALLOW REPORTS FROM \\slfs01\public\visdownloads  ##############
-    Dim WebFocusPull As Boolean = True
+    Dim WebFocusPull As Boolean = False
+
 
     Sub Main()
         'If UCase(Environment.UserName) <> "PPRASINOS" Then Exit Sub
@@ -87,7 +88,7 @@ Module module1
         AfterDate = MakeWebfocusDate(Today.AddDays(-7))
         UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
         UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
-        'UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
+        UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
         'Try
         Dim OpensRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=custom_open_order_reportshtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=13377"
         Dim TputRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=ESH_and_TPUT_FOR_FLEX_for_sql.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=340&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&LE_TP_DATE_COMPELTED=" + BeforeDate + "&TP_DATE_COMPELTED=" + AfterDate + "&BIP_rand=21066"
@@ -567,69 +568,73 @@ Module module1
                     Console.CursorLeft = 0
 
                 For RowNum = 1 To j.length - 2
-                    With cmd.Parameters
-                        .Clear()
-                        For Each Col In ColumnInfo
-                            'j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
-                            j(RowNum)(Col(2)) = Trim(j(RowNum)(Col(2)))
-                            'j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "E, W", "")
-                            j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
-                            If Col(1) = "nvarchar" Or Col(1) = "nchar" Then
-                                .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
-                            ElseIf Col(1) = "float" And Col(0) <> "ACTIVE" Then
-                                'Debug.Print(j(RowNum)(Col(2)))
-                                j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "R", "1")
-                                j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "N", "0")
-                                j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "Y", "2")
+                    Try
+                        With cmd.Parameters
+                            .Clear()
+                            For Each Col In ColumnInfo
+                                'j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
+                                j(RowNum)(Col(2)) = Trim(j(RowNum)(Col(2)))
+                                'j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "E, W", "")
+                                j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
+                                If Col(1) = "nvarchar" Or Col(1) = "nchar" Then
+                                    .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
+                                ElseIf Col(1) = "float" And Col(0) <> "ACTIVE" Then
+                                    'Debug.Print(j(RowNum)(Col(2)))
+                                    j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "R", "1")
+                                    j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "N", "0")
+                                    j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "Y", "2")
 
-                                If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-                                    .Add("@" & Col(0), SqlDbType.Float).Value = 0
-                                Else
-                                    Dim s As Double = j(RowNum)(Col(2))
-                                    .Add("@" & Col(0), SqlDbType.Float).Value = s
-                                End If
-                            ElseIf InStr(Col(1), "smallint", CompareMethod.Text) <> 0 Then
-                                If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-                                    .Add("@" & Col(0), SqlDbType.SmallInt).Value = 0
-                                Else
-                                    Dim S As Int16 = Replace(j(RowNum)(Col(2)), ",", "") * 1
-                                    .Add("@" & Col(0), SqlDbType.SmallInt).Value = S
-                                End If
-                            ElseIf InStr(Col(1), "int", CompareMethod.Text) <> 0 And Col(0) <> "ACTIVE" Then
-                                If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-                                    .Add("@" & Col(0), SqlDbType.Int).Value = 0
-                                Else
-                                    Dim S As Integer = (0 & Replace((Replace(Replace(j(RowNum)(Col(2)), " ", ""), ".", "")), Chr(34), "")) * 1
-                                    .AddWithValue("@" & Col(0), S)
-                                End If
-                            ElseIf InStr(Col(1), "Date", CompareMethod.Text) <> 0 Then
-                                Dim dt As DateTime = #1/1/1900#
-                                If Not Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-                                    If j(RowNum)(Col(2)) <> "0" Then
-                                        Try
-                                            If Len(j(RowNum)(Col(2))) = 8 Then dt = DateTime.ParseExact(j(RowNum)(Col(2)), "MMddyyyy", System.Globalization.DateTimeFormatInfo.InvariantInfo)
-                                            If Len(j(RowNum)(Col(2))) >= 9 Then dt = DateTime.ParseExact(Left(j(RowNum)(Col(2)), 14), "yyyyMMddHHmmss", System.Globalization.DateTimeFormatInfo.InvariantInfo)
-                                        Catch
-                                            dt = DateTime.Parse(j(RowNum)(Col(2)), System.Globalization.DateTimeFormatInfo.InvariantInfo)
-                                        End Try
+                                    If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
+                                        .Add("@" & Col(0), SqlDbType.Float).Value = 0
                                     Else
-                                        dt = #1/1/1900#
+                                        Dim s As Double = j(RowNum)(Col(2))
+                                        .Add("@" & Col(0), SqlDbType.Float).Value = s
                                     End If
-                                    If dt.Year > 1900 Then
-                                        .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
+                                ElseIf InStr(Col(1), "smallint", CompareMethod.Text) <> 0 Then
+                                    If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
+                                        .Add("@" & Col(0), SqlDbType.SmallInt).Value = 0
                                     Else
-                                        dt = Now.AddYears(-100)
-                                        .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
+                                        Dim S As Int16 = Replace(j(RowNum)(Col(2)), ",", "") * 1
+                                        .Add("@" & Col(0), SqlDbType.SmallInt).Value = S
+                                    End If
+                                ElseIf InStr(Col(1), "int", CompareMethod.Text) <> 0 And Col(0) <> "ACTIVE" Then
+                                    If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
+                                        .Add("@" & Col(0), SqlDbType.Int).Value = 0
+                                    Else
+                                        Dim S As Integer = (0 & Replace((Replace(Replace(j(RowNum)(Col(2)), " ", ""), ".", "")), Chr(34), "")) * 1
+                                        .AddWithValue("@" & Col(0), S)
+                                    End If
+                                ElseIf InStr(Col(1), "Date", CompareMethod.Text) <> 0 Then
+                                    Dim dt As DateTime = #1/1/1900#
+                                    If Not Replace(j(RowNum)(Col(2)), ",", "") = "." Then
+                                        If j(RowNum)(Col(2)) <> "0" Then
+                                            Try
+                                                If Len(j(RowNum)(Col(2))) = 8 Then dt = DateTime.ParseExact(j(RowNum)(Col(2)), "MMddyyyy", System.Globalization.DateTimeFormatInfo.InvariantInfo)
+                                                If Len(j(RowNum)(Col(2))) >= 9 Then dt = DateTime.ParseExact(Left(j(RowNum)(Col(2)), 14), "yyyyMMddHHmmss", System.Globalization.DateTimeFormatInfo.InvariantInfo)
+                                            Catch
+                                                dt = DateTime.Parse(j(RowNum)(Col(2)), System.Globalization.DateTimeFormatInfo.InvariantInfo)
+                                            End Try
+                                        Else
+                                            dt = #1/1/1900#
+                                        End If
+                                        If dt.Year > 1900 Then
+                                            .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
+                                        Else
+                                            dt = Now.AddYears(-100)
+                                            .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
+                                        End If
                                     End If
                                 End If
-                            End If
-                        Next
-                        .Add("@ACTIVE", SqlDbType.Int).Value = 1
-                    End With
-                    cmd.ExecuteNonQuery()
-                    CT = CT + 1
-                    Console.CursorLeft = 0
-                    Console.Write(CT & "/" & j.length & "        ")
+                            Next
+                            .Add("@ACTIVE", SqlDbType.Int).Value = 1
+                        End With
+                        cmd.ExecuteNonQuery()
+                        CT = CT + 1
+                        Console.CursorLeft = 0
+                        Console.Write(CT & "/" & j.length & "        ")
+                    Catch
+                    End Try
+
                 Next
                 Console.CursorLeft = 20
                     Console.WriteLine(TableName & " UPDATED Using " & RespNames)

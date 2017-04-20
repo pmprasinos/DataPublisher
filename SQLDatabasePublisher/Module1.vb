@@ -34,12 +34,9 @@ Module module1
         For Each currentProcess As Process In theProcesses
 
             'Get the currentProcess MainWindowTitle and see if that title matches the title of the action cancelled IE instance:
-
             currentProcess.Kill()
-
         Next
         '  If UCase(Environment.MachineName) <> "DATACOLLSL" Then NotificationEmails()
-
         Dim t As Date = Now
         Dim IsUser As Boolean = False
 
@@ -57,7 +54,7 @@ Module module1
 
         If UCase(Environment.UserName) <> "DATACOLLSL" Then
             adj = adj + 8
-            AfterDate = MakeWebfocusDate(Today.AddDays(-4))
+            AfterDate = MakeWebfocusDate(Today.AddDays(-10))
         Else
             adj = adj - 5
         End If
@@ -87,8 +84,9 @@ Module module1
 
         End If
         'UpdateTimes(0)(0) = "OPEN_ORDERS" : UpdateTimes(0)(1) = Today.AddDays(-2)
-        'UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
-        'UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
+        AfterDate = MakeWebfocusDate(Today.AddDays(-7))
+        UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
+        UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
         'UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
         'Try
         Dim OpensRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=custom_open_order_reportshtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=13377"
@@ -190,9 +188,9 @@ Module module1
                 ''''''wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
                 ''''''wf.GetReporthAsync(ScrapRef, "scrap")
                 UpdateStatus(1, "SUBMITTED", "scrap", False)
-                ''''''UpdateAppend(wf, GetWFIds(wf.GetRequests))
-                UpdateAppend(ScrapRef, "scrap")
-            End If
+            ''''''UpdateAppend(wf, GetWFIds(wf.GetRequests))
+            'UpdateAppend(ScrapRef, "scrap")
+        End If
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
             Maxage = 55 + adj
@@ -484,11 +482,12 @@ Module module1
                      FileIO.FileSystem.WriteAllText("\\slfs01\public\VisDownloads\" & RespNames & ".csv", headerst, False)
                 Else
 
-                        Dim t As String() = Split(FileIO.FileSystem.ReadAllText(ref), vbCrLf)
-                        Dim TempList As New List(Of String())
+                    ' j = FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref)
+                    Dim t As String() = Split(FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref), vbCrLf)
+                    Dim TempList As New List(Of String())
                         For Each s In t
-                            TempList.Add(Split(s, ","))
-                        Next
+                        TempList.Add(Split(Replace(s, "CE, W", ""), ","))
+                    Next
                         j = TempList.ToArray
                     End If
 
@@ -567,59 +566,72 @@ Module module1
                     Console.Write("0")
                     Console.CursorLeft = 0
 
-                    For RowNum = 1 To j.length - 1
-                        With cmd.Parameters
-                            .Clear()
-                            For Each Col In ColumnInfo
-                                If Col(1) = "nvarchar" Or Col(1) = "nchar" Then
-                                    .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
-                                ElseIf Col(1) = "float" And Col(0) <> "ACTIVE" Then
-                                    'Debug.Print(j(RowNum)(Col(2)))
-                                    j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "R", "1")
-                                    j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "N", "0")
-                                    j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "Y", "2")
+                For RowNum = 1 To j.length - 2
+                    With cmd.Parameters
+                        .Clear()
+                        For Each Col In ColumnInfo
+                            'j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
+                            j(RowNum)(Col(2)) = Trim(j(RowNum)(Col(2)))
+                            'j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "E, W", "")
+                            j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
+                            If Col(1) = "nvarchar" Or Col(1) = "nchar" Then
+                                .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
+                            ElseIf Col(1) = "float" And Col(0) <> "ACTIVE" Then
+                                'Debug.Print(j(RowNum)(Col(2)))
+                                j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "R", "1")
+                                j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "N", "0")
+                                j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "Y", "2")
 
-                                    If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-                                        .Add("@" & Col(0), SqlDbType.Float).Value = 0
+                                If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
+                                    .Add("@" & Col(0), SqlDbType.Float).Value = 0
+                                Else
+                                    Dim s As Double = j(RowNum)(Col(2))
+                                    .Add("@" & Col(0), SqlDbType.Float).Value = s
+                                End If
+                            ElseIf InStr(Col(1), "smallint", CompareMethod.Text) <> 0 Then
+                                If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
+                                    .Add("@" & Col(0), SqlDbType.SmallInt).Value = 0
+                                Else
+                                    Dim S As Int16 = Replace(j(RowNum)(Col(2)), ",", "") * 1
+                                    .Add("@" & Col(0), SqlDbType.SmallInt).Value = S
+                                End If
+                            ElseIf InStr(Col(1), "int", CompareMethod.Text) <> 0 And Col(0) <> "ACTIVE" Then
+                                If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
+                                    .Add("@" & Col(0), SqlDbType.Int).Value = 0
+                                Else
+                                    Dim S As Integer = (0 & Replace((Replace(Replace(j(RowNum)(Col(2)), " ", ""), ".", "")), Chr(34), "")) * 1
+                                    .AddWithValue("@" & Col(0), S)
+                                End If
+                            ElseIf InStr(Col(1), "Date", CompareMethod.Text) <> 0 Then
+                                Dim dt As DateTime = #1/1/1900#
+                                If Not Replace(j(RowNum)(Col(2)), ",", "") = "." Then
+                                    If j(RowNum)(Col(2)) <> "0" Then
+                                        Try
+                                            If Len(j(RowNum)(Col(2))) = 8 Then dt = DateTime.ParseExact(j(RowNum)(Col(2)), "MMddyyyy", System.Globalization.DateTimeFormatInfo.InvariantInfo)
+                                            If Len(j(RowNum)(Col(2))) >= 9 Then dt = DateTime.ParseExact(Left(j(RowNum)(Col(2)), 14), "yyyyMMddHHmmss", System.Globalization.DateTimeFormatInfo.InvariantInfo)
+                                        Catch
+                                            dt = DateTime.Parse(j(RowNum)(Col(2)), System.Globalization.DateTimeFormatInfo.InvariantInfo)
+                                        End Try
                                     Else
-                                        Dim s As Double = j(RowNum)(Col(2))
-                                        .Add("@" & Col(0), SqlDbType.Float).Value = s
+                                        dt = #1/1/1900#
                                     End If
-                                ElseIf InStr(Col(1), "smallint", CompareMethod.Text) <> 0 Then
-                                    If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-                                        .Add("@" & Col(0), SqlDbType.SmallInt).Value = 0
+                                    If dt.Year > 1900 Then
+                                        .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
                                     Else
-                                        Dim S As Int16 = Replace(j(RowNum)(Col(2)), ",", "") * 1
-                                        .Add("@" & Col(0), SqlDbType.SmallInt).Value = S
-                                    End If
-                                ElseIf InStr(Col(1), "int", CompareMethod.Text) <> 0 And Col(0) <> "ACTIVE" Then
-                                    If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-                                        .Add("@" & Col(0), SqlDbType.Int).Value = 0
-                                    Else
-                                        Dim S As Integer = (0 & Replace(Replace(j(RowNum)(Col(2)), ",", ""), ".", "")) * 1
-                                        .AddWithValue("@" & Col(0), S)
-                                    End If
-                                ElseIf InStr(Col(1), "Date", CompareMethod.Text) <> 0 Then
-                                    Dim dt As DateTime = #1/1/1900#
-                                    If Not Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-                                        dt = DateTime.Parse(j(RowNum)(Col(2)))
-                                        If dt.Year > 1900 Then
-                                            .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
-                                        Else
-                                            dt = Now.AddYears(-100)
-                                            .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
-                                        End If
+                                        dt = Now.AddYears(-100)
+                                        .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
                                     End If
                                 End If
-                            Next
-                            .Add("@ACTIVE", SqlDbType.Int).Value = 1
-                        End With
-                        cmd.ExecuteNonQuery()
-                        CT = CT + 1
-                        Console.CursorLeft = 0
-                        Console.Write(CT & "/" & j.length & "        ")
-                    Next
-                    Console.CursorLeft = 20
+                            End If
+                        Next
+                        .Add("@ACTIVE", SqlDbType.Int).Value = 1
+                    End With
+                    cmd.ExecuteNonQuery()
+                    CT = CT + 1
+                    Console.CursorLeft = 0
+                    Console.Write(CT & "/" & j.length & "        ")
+                Next
+                Console.CursorLeft = 20
                     Console.WriteLine(TableName & " UPDATED Using " & RespNames)
                     tab = TableName
 NEXTP:
@@ -646,288 +658,38 @@ NEXTP:
     End Sub
 
 
-    '    Private Sub UpdateAppend(WF As WebfocusDLL.WebfocusModule, RespNames() As String)
-    '        Dim tab As String = ""
-    '        Dim RefFind() As String = {"ships", "fingoods", "lots", "certs", "scrap", "partdata", "xtl", "tput", "labor", "labor1", "wiphist"}
-    '        Dim TableNames() As String = {"SHIPMENTS", "CERT_ERRORS", "CERT_ERRORS", "CERT_ERRORS", "SCRAP", "ALLOYS", "TIMELINE", "TPUT", "LABOR", "LABOR", "WIP_MOVE_HIST"}
-    '        Dim UpdatedRows As Integer = 0
-    '        Using cn As New SqlConnection(ConnectionString)
-    '            cn.Open()
-    '            Try
-    '                Using cmd As New SqlCommand("", cn)
-    '                    cmd.CommandTimeout = 5
-    '                    cmd.CommandType = CommandType.Text
-    '                    '#updates one record so that other machines do not start a pull while one is waiting for a report
-    '                    If InStr(WF.GetRequests, "lots") <> 0 Then
-    '                        cmd.CommandText = "UPDATE WFLOCAL.DBO.CERT_ERRORS SET ACTIVE = 2 WHERE ACTIVE <> 0"
-    '                        cmd.ExecuteNonQuery()
-    '                    ElseIf InStr(WF.GetRequests, "ships") <> 0 Then
-    '                        cmd.CommandText = "UPDATE WFLOCAL.DBO.SHIPMENTS SET INVOICE_NO = 'PACK(1).pdf' WHERE INVOICE_NO = 'PACK(1).pdf'"
-    '                        cmd.ExecuteNonQuery()
-    '                    ElseIf InStr(WF.GetRequests, "tput") Then
-    '                        cmd.CommandText = "UPDATE WFLOCAL.DBO.TPUT SET TPUT_VALUE = 0 WHERE ESH = 7.9144 AND WORKORDERNO = '1012548-00169' "
-    '                        cmd.ExecuteNonQuery()
-    '                    End If
-
-    '                    For P = 0 To RespNames.Length - 1
-    '                        If RespNames(P) = Nothing Or RespNames(P) = "opens" Then GoTo NEXTP
-    '                        Dim j As New Object
-    '                        j = WF.GetResponse(RespNames(P)).Response
-
-    '                        Dim TableName As String = ""
-
-    '                        For ind = 0 To RefFind.Length - 1
-    '                            If RefFind(ind) = RespNames(P) Then TableName = TableNames(ind) & DebugText
-    '                        Next
-
-    '                        Dim UID As Guid
-    '                        Try : UID = UpdateStatus(2, "RECIEVED", TableName, False) : Catch : End Try
-
-    '                        cmd.CommandType = CommandType.Text
-    '                        cmd.CommandText = "SELECT column_name, data_type FROM wflocal.INFORMATION_SCHEMA.COLUMNS" & vbCrLf &
-    '                            "WHERE wflocal.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME='" & TableName & "'"
-
-    '                        Dim ColumnInfo As New List(Of String())
-    '                        Dim CSVColumns As String = ""
-    '                        Dim CSVUPDATE As String = ""
-
-    '                        Using dr As SqlDataReader = cmd.ExecuteReader
-    '                            While dr.Read()
-    '                                Dim Y As Integer = GetColumnNumber(j, dr("column_name").ToString)
-    '                                If Y <> -1 Then
-    '                                    ColumnInfo.Add({dr("column_name").ToString, dr("data_type").ToString, Y})
-    '                                    CSVColumns = CSVColumns & "ROW." & dr("column_name").ToString & ", "
-    '                                    CSVUPDATE = CSVUPDATE & dr("column_name").ToString & " = @" & dr("column_name").ToString & ","
-    '                                End If
-    '                            End While
-    '                        End Using
-    '                        ColumnInfo.Add({"ACTIVE", "int", 0})
-    '                        CSVColumns = CSVColumns & "ROW.ACTIVE, "
-    '                        CSVUPDATE = CSVUPDATE & "ROW.ACTIVE = @ACTIVE,"
-    '                        CSVColumns = Left(CSVColumns, Len(CSVColumns) - 2)
-    '                        CSVUPDATE = Left(CSVUPDATE, Len(CSVUPDATE) - 1)
-
-    '                        cmd.CommandType = CommandType.StoredProcedure
-    '                        If TableName = "SCRAP" & DebugText Then
-    '                            cmd.CommandText = "WFLOCAL.DBO.UpdateScrap"
-    '                        ElseIf TableName = "CERT_ERRORS" & DebugText Then
-    '                            cmd.CommandText = "WFLOCAL.DBO.UPDATEAPPENDWIP"
-    '                        ElseIf TableName = "TIMELINE" & DebugText Then
-    '                            cmd.CommandText = "WFLOCAL.DBO.XTLupdateAppend"
-    '                        ElseIf TableName = "ALLOYS" & DebugText Then
-    '                            cmd.CommandText = "	MERGE WFLOCAL..ALLOYS AS TARGET
-    '                                            USING (SELECT @PARTNO, @ALLOY_DESCR, @MATERIAL_SPEC, @PART_DESCR, @PIECES_PER_MOLD, @SELLING_PRICE, @POUR_WEIGHT, @STOP_RELEASE, @PART_STATUS, @ROUT_REV, @SHIP_WEIGHT) AS SOURCE 
-    '                                                          (PARTNO,  ALLOY_DESCR,  MATERIAL_SPEC,  PART_DESCR,  PIECES_PER_MOLD,  SELLING_PRICE,  POUR_WEIGHT,  STOP_RELEASE,  PART_STATUS, ROUT_REV, SHIP_WEIGHT)
-    '                                            ON TARGET.PARTNO=SOURCE.PARTNO
-    '                                            WHEN MATCHED THEN
-    '                                                    UPDATE SET	ALLOY_DESCR=SOURCE.ALLOY_DESCR,  
-    '                                                                MATERIAL_SPEC=SOURCE.MATERIAL_SPEC,
-    '                                                                PART_DESCR=SOURCE.PART_DESCR,
-    '                                                                PIECES_PER_MOLD=SOURCE.PIECES_PER_MOLD,
-    '                                                                SELLING_PRICE=SOURCE.SELLING_PRICE,
-    '                                                                POUR_WEIGHT=SOURCE.POUR_WEIGHT,
-    '                                                                STOP_RELEASE=SOURCE.STOP_RELEASE,
-    '                                                                PART_STATUS=SOURCE.PART_STATUS,
-    '                                                                ROUT_REV=SOURCE.ROUT_REV,
-    '                                                                SHIP_WEIGHT = SOURCE.SHIP_WEIGHT
-    '                                            WHEN NOT MATCHED THEN
-    '                                                    INSERT (PARTNO,  ALLOY_DESCR,  MATERIAL_SPEC,  PART_DESCR,  PIECES_PER_MOLD,  SELLING_PRICE,  POUR_WEIGHT,  STOP_RELEASE,  PART_STATUS, ROUT_REV, SHIP_WEIGHT)
-    '                                                    values (@PARTNO, @ALLOY_DESCR, @MATERIAL_SPEC, @PART_DESCR, @PIECES_PER_MOLD, @SELLING_PRICE, @POUR_WEIGHT, @STOP_RELEASE, @PART_STATUS, @ROUT_REV, @SHIP_WEIGHT);"
-
-    '                            cmd.CommandType = CommandType.Text
-    '                        ElseIf TableName = "SHIPMENTS" & DebugText Then
-    '                            cmd.CommandText = "WFLOCAL.DBO.AddShipments"
-    '                        ElseIf TableName = "TPUT" & DebugText Then
-    '                            cmd.CommandText = "WFLOCAL.DBO.UpdateThruput"
-    '                        ElseIf TableName = "LABOR" & DebugText Then
-    '                            cmd.CommandText = "WFLOCAL.DBO.UpdateLabor"
-    '                        ElseIf TableName = "WIP_MOVE_HIST" & DebugText Then
-    '                            cmd.CommandText = "WFLOCAL.DBO.UPDATE_WIP_HIST"
-    '                        End If
-
-    '                        Dim CT As Long = 1
-    '                        Console.Write("0")
-    '                        Console.CursorLeft = 0
-
-    '                        For RowNum = 1 To j.length - 1
-    '                            With cmd.Parameters
-    '                                .Clear()
-    '                                For Each Col In ColumnInfo
-    '                                    If Col(1) = "nvarchar" Or Col(1) = "nchar" Then
-    '                                        .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
-    '                                    ElseIf Col(1) = "float" And Col(0) <> "ACTIVE" Then
-    '                                        Debug.Print(j(RowNum)(Col(2)))
-    '                                        j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "R", "1")
-    '                                        j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "N", "0")
-    '                                        j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "Y", "2")
-
-    '                                        If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-    '                                            .Add("@" & Col(0), SqlDbType.Float).Value = 0
-    '                                        Else
-    '                                            Dim s As Double = j(RowNum)(Col(2))
-    '                                            .Add("@" & Col(0), SqlDbType.Float).Value = s
-    '                                        End If
-    '                                    ElseIf InStr(Col(1), "smallint", CompareMethod.Text) <> 0 Then
-    '                                        If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-    '                                            .Add("@" & Col(0), SqlDbType.SmallInt).Value = 0
-    '                                        Else
-    '                                            Dim S As Int16 = Replace(j(RowNum)(Col(2)), ",", "") * 1
-    '                                            .Add("@" & Col(0), SqlDbType.SmallInt).Value = S
-    '                                        End If
-    '                                    ElseIf InStr(Col(1), "int", CompareMethod.Text) <> 0 And Col(0) <> "ACTIVE" Then
-    '                                        If Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-    '                                            .Add("@" & Col(0), SqlDbType.Int).Value = 0
-    '                                        Else
-    '                                            Dim S As Integer = (0 & Replace(Replace(j(RowNum)(Col(2)), ",", ""), ".", "")) * 1
-    '                                            .AddWithValue("@" & Col(0), S)
-    '                                        End If
-    '                                    ElseIf InStr(Col(1), "Date", CompareMethod.Text) <> 0 Then
-    '                                        Dim dt As DateTime = #1/1/1900#
-    '                                        If Not Replace(j(RowNum)(Col(2)), ",", "") = "." Then
-    '                                            dt = DateTime.Parse(j(RowNum)(Col(2)))
-    '                                            If dt.Year > 1900 Then
-    '                                                .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
-    '                                            Else
-    '                                                dt = Now.AddYears(-100)
-    '                                                .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
-    '                                            End If
-    '                                        End If
-    '                                    End If
-    '                                Next
-    '                                .Add("@ACTIVE", SqlDbType.Int).Value = 1
-    '                            End With
-    '                            cmd.ExecuteNonQuery()
-    '                            CT = CT + 1
-    '                            Console.CursorLeft = 0
-    '                            Console.Write(CT & "/" & j.length & "        ")
-    '                        Next
-    '                        Console.CursorLeft = 20
-    '                        Console.WriteLine(TableName & " UPDATED Using " & RespNames(P))
-    '                        tab = TableName
-    'NEXTP:
-    '                    Next P
-    '                    Try : UpdateStatus(3, "UPDATED", tab, False) : Catch : End Try
-
-    '                    If InStr(WF.GetRequests, "lots") <> 0 Then
-    '                        cmd.CommandType = CommandType.Text
-    '                        cmd.CommandText = "UPDATE WFLOCAL.DBO.CERT_ERRORS Set ACTIVE = 0 WHERE ACTIVE = 2"
-    '                        Dim RWS As Integer = cmd.ExecuteNonQuery()
-    '                        UpdatedRows = UpdatedRows + RWS
-    '                        cmd.CommandType = CommandType.StoredProcedure
-    '                        cmd.CommandText = "wflocal..cleanup"
-    '                        cmd.Parameters.Clear()
-    '                        cmd.ExecuteNonQuery()
-    '                    End If
-    '                End Using
-
-    '            Catch ex As Exception
-    '                MsgBox(ex.ToString)
-    '                MsgBox(ex.InnerException.ToString)
-    '            End Try
-    '        End Using
-    '    End Sub
-
-
-    'Sub OpensUpdater(wf As WebfocusModule)
-
-    '    Dim j As Object = wf.GetResponse("opens").Response
-    '    UpdateStatus(2, "RECIEVED", "OPEN_ORDERS", False)
-    '    Using cn As New SqlConnection(ConnectionString)
-    '        Try
-    '            cn.Open()
-    '            Using cmd As New SqlCommand("", cn)
-    '                cmd.CommandTimeout = 5
-
-    '                cmd.CommandText = "UPDATE wflocal.dbo.OPEN_ORDERS Set ACTIVE = 2 WHERE ACTIVE <> 0"
-    '                cmd.ExecuteNonQuery()
-    '                cmd.CommandText = " Select column_name, data_type 
-    '                                    FROM WFLOCAL.INFORMATION_SCHEMA.COLUMNS
-    '                                    WHERE WFLOCAL.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME ='OPEN_ORDERS'"
-
-    '                Dim ColumnInfo As New List(Of String())
-    '                Dim ColNumbers As New List(Of Integer)
-
-    '                Using dr As SqlDataReader = cmd.ExecuteReader
-    '                    While dr.Read()
-    '                        Dim Y As Integer = GetColumnNumber(j, dr("column_name").ToString)
-    '                        If Y <> -1 Then
-    '                            ColumnInfo.Add({dr("column_name").ToString, dr("data_type").ToString, Y})
-    '                        End If
-    '                    End While
-    '                End Using
-
-    '                For RowNum = 1 To j.length - 1
-    '                    With cmd.Parameters
-    '                        .Clear()
-    '                        For Each Col In ColumnInfo
-    '                            If Col(1) = "nvarchar" Then
-    '                                .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
-    '                            ElseIf Col(1) = "float" Then
-    '                                .Add("@" & Col(0), SqlDbType.Float).Value = Replace(j(RowNum)(Col(2)), ",", "")
-    '                            ElseIf Col(1) = "datetime" Then
-    '                                Dim dt As DateTime = DateTime.Parse(j(RowNum)(Col(2)))
-    '                                If dt.Year > 1900 Then
-    '                                    .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
-    '                                Else
-    '                                    dt = Now.AddYears(-100)
-    '                                    .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
-    '                                End If
-    '                            End If
-    '                        Next Col
-    '                        .AddWithValue("@ACTIVE", 1)
-    '                    End With
-    '                    Console.CursorLeft = 0
-    '                    Console.Write(RowNum + 1 & "/" & j.length & "       ")
-
-    '                    cmd.CommandType = CommandType.StoredProcedure
-    '                    cmd.CommandText = "WFLOCAL.DBO.OPENUPDATER"
-    '                    Dim y As Integer = cmd.ExecuteNonQuery()
-    '                    'If y <> -1 Then Stop
-    '                Next RowNum
-    '                cmd.CommandType = CommandType.Text
-    '                cmd.CommandText = "UPDATE wflocal.dbo.OPEN_ORDERS SET ACTIVE = 0 WHERE ACTIVE = 2"
-    '                cmd.ExecuteNonQuery()
-    '                cmd.CommandText = "INSERT INTO WFLOCAL.DBO.PO_REVIEW  (SALES_ORDER_NO, CUST_NO, SALES, USERNAME, ttimestamp, prel, pship, erel, eship)
-    '                                Select DISTINCT B.SALES_ORDER_NO, B.CUSTOMER_NO, B.ADDED_BY, B.ADDED_BY, getdate(), 1, 1, 1, 1
-    '                                From DBO.OPEN_ORDERS B
-    '                                Where Not EXISTS(Select distinct  B.SALES_ORDER_NO
-    '                                From DBO.PO_REVIEW
-    '                                Where PO_REVIEW.SALES_ORDER_NO = B.SALES_ORDER_NO)"
-    '                cmd.ExecuteNonQuery()
-    '                cmd.Parameters.Clear()
-    '                cmd.CommandType = CommandType.StoredProcedure
-    '                cmd.CommandText = "wflocal.dbo.CleanTickets"
-    '                cmd.ExecuteNonQuery()
-    '            End Using
-    '            Console.CursorLeft = 20
-    '            Console.WriteLine("OPEN_ORDERS" & " UPDATED Using " & "opens")
-    '        Catch ex As Exception
-    '            MsgBox(ex.GetType().ToString)
-    '            MsgBox(ex.Message.ToString)
-    '            MsgBox(ex.InnerException.ToString)
-    '        End Try
-    '    End Using
-    '    UpdateStatus(3, "UPDATED", "OPEN_ORDERS", False)
-    'End Sub
 
     Sub OpensUpdater(ref As String)
         Dim j As New Object 
         If WebFocusPull Then
             j = GetWFReport(ref)
-            Else
-            J  = FileIO.FileSystem.ReadAllText(ref)
+            Dim headerst As String = ""
+            For Each s As String In j(0)
+                headerst = headerst & s & ","
+            Next
+            headerst = Left(headerst, (Len(headerst) - 1)) & vbCrLf
+            'If Environment.MachineName = "SLPPRASINOSLT01" or Environment.MachineName = "SLAN-1ZNFXZ1" Then
+            FileIO.FileSystem.WriteAllText("\\slfs01\public\VisDownloads\" & "OPENS" & ".csv", headerst, False)
+        Else
+            Dim t As String() = Split(FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref), vbCrLf)
+            Dim TempList As New List(Of String())
+            For Each s In t
+                TempList.Add(Split(Replace(s, "CE, W", ""), ","))
+            Next
+            j = TempList.ToArray
+
         End if
         UpdateStatus(2, "RECIEVED", "OPEN_ORDERS", False)
         Using cn As New SqlConnection(ConnectionString)
-            Try
-                cn.Open()
+            ' Try
+            cn.Open()
                 Using cmd As New SqlCommand("", cn)
                     cmd.CommandTimeout = 5
 
                     cmd.CommandText = "UPDATE wflocal.dbo.OPEN_ORDERS Set ACTIVE = 2 WHERE ACTIVE <> 0"
                     cmd.ExecuteNonQuery()
                     cmd.CommandText = " Select column_name, data_type 
-                                        FROM WFLOCAL.INFORMATION_SCHEMA.COLUMNS
+                                        From WFLOCAL.INFORMATION_SCHEMA.COLUMNS
                                         WHERE WFLOCAL.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME ='OPEN_ORDERS'"
 
                     Dim ColumnInfo As New List(Of String())
@@ -942,35 +704,47 @@ NEXTP:
                         End While
                     End Using
 
-                    For RowNum = 1 To j.length - 1
-                        With cmd.Parameters
-                            .Clear()
-                            For Each Col In ColumnInfo
-                                If Col(1) = "nvarchar" Then
-                                    .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
-                                ElseIf Col(1) = "float" Then
-                                    .Add("@" & Col(0), SqlDbType.Float).Value = Replace(j(RowNum)(Col(2)), ",", "")
-                                ElseIf Col(1) = "datetime" Then
-                                    Dim dt As DateTime = DateTime.Parse(j(RowNum)(Col(2)))
-                                    If dt.Year > 1900 Then
-                                        .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
-                                    Else
-                                        dt = Now.AddYears(-100)
-                                        .Add("@" & Col(0), SqlDbType.DateTime).Value = dt
-                                    End If
-                                End If
-                            Next Col
-                            .AddWithValue("@ACTIVE", 1)
-                        End With
-                        Console.CursorLeft = 0
-                        Console.Write(RowNum + 1 & "/" & j.length & "       ")
+                For RowNum = 1 To j.length - 2
 
-                        cmd.CommandType = CommandType.StoredProcedure
-                        cmd.CommandText = "WFLOCAL.DBO.OPENUPDATER"
-                        Dim y As Integer = cmd.ExecuteNonQuery()
-                        'If y <> -1 Then Stop
-                    Next RowNum
-                    cmd.CommandType = CommandType.Text
+                    With cmd.Parameters
+                        .Clear()
+                        For Each Col In ColumnInfo
+                            j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
+                            j(RowNum)(Col(2)) = Trim(j(RowNum)(Col(2)))
+
+
+                            If Col(1) = "nvarchar" Then
+                                .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
+                            ElseIf Col(1) = "float" Then
+                                .Add("@" & Col(0), SqlDbType.Float).Value = Replace(j(RowNum)(Col(2)), ",", "")
+                            ElseIf Col(1) = "datetime" Then
+                                Dim dt As DateTime
+                                Try
+                                    dt = DateTime.ParseExact(j(RowNum)(Col(2)), "MMddyyyy", System.Globalization.DateTimeFormatInfo.InvariantInfo).Date
+                                Catch
+                                    dt = #1/1/1900#
+                                    GoTo skip
+                                End Try
+                                If dt.Year > 1900 Then
+                                    .Add("@" & Col(0), SqlDbType.Date).Value = dt
+                                Else
+                                    dt = Now.AddYears(-100)
+                                    .Add("@" & Col(0), SqlDbType.Date).Value = dt
+                                End If
+                            End If
+                        Next Col
+                        .AddWithValue("@ACTIVE", 1)
+                    End With
+                    Console.CursorLeft = 0
+                    Console.Write(RowNum + 1 & "/" & j.length & "       ")
+
+                    cmd.CommandType = CommandType.StoredProcedure
+                    cmd.CommandText = "WFLOCAL.DBO.OPENUPDATER"
+                    Dim y As Integer = cmd.ExecuteNonQuery()
+                    'If y <> -1 Then Stop
+skip:
+                Next RowNum
+                cmd.CommandType = CommandType.Text
                     cmd.CommandText = "UPDATE wflocal.dbo.OPEN_ORDERS SET ACTIVE = 0 WHERE ACTIVE = 2"
                     cmd.ExecuteNonQuery()
                     cmd.CommandText = "INSERT INTO WFLOCAL.DBO.PO_REVIEW  (SALES_ORDER_NO, CUST_NO, SALES, USERNAME, ttimestamp, prel, pship, erel, eship)
@@ -987,11 +761,11 @@ NEXTP:
                 End Using
                 Console.CursorLeft = 20
                 Console.WriteLine("OPEN_ORDERS" & " UPDATED Using " & "opens")
-            Catch ex As Exception
-                MsgBox(ex.GetType().ToString)
-                MsgBox(ex.Message.ToString)
-                MsgBox(ex.InnerException.ToString)
-            End Try
+            'Catch ex As Exception
+            '    MsgBox(ex.GetType().ToString)
+            '    MsgBox(ex.Message.ToString)
+            '    MsgBox(ex.InnerException.ToString)
+            'End Try
         End Using
         UpdateStatus(3, "UPDATED", "OPEN_ORDERS", False)
     End Sub

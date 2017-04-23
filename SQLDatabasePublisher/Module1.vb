@@ -69,7 +69,7 @@ Module module1
                 FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\Logs.txt", Now() & "    EXCEL caused shutdown", True)
                 If CheckIfRunning("EXCEL") > 0 And UCase(Environment.MachineName) = "SLREPORT01" Then System.Diagnostics.Process.Start("shutdown", "-r -f -t 00")
             End If
-        Else
+        ElseIf ucase(Environment.UserName) <> "PPRASINOS" Then
             '#####Force update if pull is not automated###
             IsUser = True
             Console.Write("Enter FromDate using format 'MMDDYYYY': ")
@@ -127,8 +127,8 @@ Module module1
                 ''''''wf.GetReporthAsync("qavistes/qavistes.htm#routingandpa", "pprasinos:pprasino/ltsshtml.fex", "xtl")
                 ''''''UpdateAppend(wf, GetWFIds(wf.GetRequests))
                 UpdateAppend(TimeLineRef, "xtl")
-                If Environment.UserName = "DATACOLLSL" Then Exit Sub
-            End If
+            '  If Environment.UserName = "DATACOLLSL" Then Exit Sub
+        End If
 
             If Day(Now) = 15 And DateDiff(DateInterval.Minute, GetLastUpdate("ALLOYS" & DebugText), Now) > ((60 * 24 * 15) - (12 * adj)) Then
                 'ExecStoredProcedure("update wflocal..ALLOYS set ALLOY_DESCR = '347' WHERE PARTNO = '01296'", False)
@@ -433,16 +433,17 @@ Module module1
                     i = i + 1
                 Loop
             End If
-            For X = 0 To 10
-                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(10)
-            Next X
-            doc = IE.Document
+        For X = 0 To 20
+            Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(50)
+        Next X
+        doc = IE.Document
             Dim doc1 As String = doc.body.outerHTML
-            IE.Navigate("http://webfocus.pccstructurals.com/ibi_apps/bip/portal/PCCStructuralsInc")
 
-            Return ClassLibrary1.HTMLProcessor.ParseHtml(doc1)
-            'Catch ex As Exception
-            IE.Visible = True
+
+        Return ClassLibrary1.HTMLProcessor.ParseHtml(doc1)
+        IE.Navigate("http://webfocus.pccstructurals.com/ibi_apps/bip/portal/PCCStructuralsInc")
+        'Catch ex As Exception
+        IE.Visible = True
 
             'FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\updater\error" & Day(Now) & Hour(Now) & Minute(Now) & ".txt", "ERROR ON LINE " & Erl() & vbCrLf & vbCrLf & ex.Message.ToString & vbCrLf & vbCrLf & vbCrLf & ex.InnerException.ToString, True)
         'End Try
@@ -463,14 +464,14 @@ Module module1
                     '#updates one record so that other machines do not start a pull while one is waiting for a report
                     If InStr(RespNames, "lots") <> 0 Then
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.CERT_ERRORS SET ACTIVE = 2 WHERE ACTIVE <> 0"
-                        cmd.ExecuteNonQuery()
-                    ElseIf InStr(RespNames, "ships") <> 0 Then
+                    'cmd.ExecuteNonQuery()
+                ElseIf InStr(RespNames, "ships") <> 0 Then
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.SHIPMENTS SET INVOICE_NO = 'PACK(1).pdf' WHERE INVOICE_NO = 'PACK(1).pdf'"
-                        cmd.ExecuteNonQuery()
-                    ElseIf InStr(RespNames, "tput") Then
+                    'cmd.ExecuteNonQuery()
+                ElseIf InStr(RespNames, "tput") Then
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.TPUT SET TPUT_VALUE = 0 WHERE ESH = 7.9144 AND WORKORDERNO = '1012548-00169' "
-                        cmd.ExecuteNonQuery()
-                    End If
+                    ' cmd.ExecuteNonQuery()
+                End If
 
 
                     If RespNames = Nothing Or RespNames = "opens" Then GoTo NEXTP
@@ -488,13 +489,17 @@ Module module1
 
                     ' j = FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref)
                     Dim y As String = FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref)
-                    y = Replace(y, "," & Chr(34) & "," & Chr(34), ",")
+                    '  y = Replace(y, "," & Chr(34) & "," & Chr(34), ",")
                     Dim t As String() = Split(y, vbCrLf)
                     Dim TempList As New List(Of String())
-                        For Each s In t
-                        TempList.Add(Split(Replace(s, "CE, W", ""), ","))
+                    For Each s In t
+                        Dim u As New Microsoft.VisualBasic.FileIO.TextFieldParser(New System.IO.StringReader(s))
+                        u.Delimiters = {","}
+                        u.HasFieldsEnclosedInQuotes = True
+                        TempList.Add(u.ReadFields())
+                        'TempList.Add(Split(Replace(s, "CE, W", ""), ","))
                     Next
-                        j = TempList.ToArray
+                    j = TempList.ToArray
                     End If
 
                     Dim TableName As String = ""
@@ -580,7 +585,7 @@ Module module1
                                 'j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
                                 j(RowNum)(Col(2)) = Trim(j(RowNum)(Col(2)))
                                 'j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), "E, W", "")
-                                j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
+                                ' j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
                                 If Col(1) = "nvarchar" Or Col(1) = "nchar" Then
                                     .Add("@" & Col(0), SqlDbType.NVarChar).Value = j(RowNum)(Col(2))
                                 ElseIf Col(1) = "float" And Col(0) <> "ACTIVE" Then
@@ -636,7 +641,7 @@ Module module1
                         cmd.ExecuteNonQuery()
                         CT = CT + 1
                         Console.CursorLeft = 0
-                        Console.Write(CT & "/" & j.length & "        ")
+                        Console.Write(CT + 1 & "/" & j.length & "        ")
                     Catch
                     End Try
 
@@ -682,9 +687,16 @@ NEXTP:
             FileIO.FileSystem.WriteAllText("\\slfs01\public\VisDownloads\" & "OPENS" & ".csv", headerst, False)
         Else
             Dim t As String() = Split(FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref), vbCrLf)
+
+
+
             Dim TempList As New List(Of String())
             For Each s In t
-                TempList.Add(Split(Replace(s, "CE, W", ""), ","))
+                Dim u As New Microsoft.VisualBasic.FileIO.TextFieldParser(New System.IO.StringReader(s))
+                u.Delimiters = {","}
+                u.HasFieldsEnclosedInQuotes = True
+                TempList.Add(u.ReadFields())
+                'TempList.Add(Split(Replace(s, "CE, W", ""), ","))
             Next
             j = TempList.ToArray
 
@@ -719,7 +731,7 @@ NEXTP:
                     With cmd.Parameters
                         .Clear()
                         For Each Col In ColumnInfo
-                            j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
+                            'j(RowNum)(Col(2)) = Replace(j(RowNum)(Col(2)), Chr(34), "")
                             j(RowNum)(Col(2)) = Trim(j(RowNum)(Col(2)))
 
 
@@ -733,7 +745,7 @@ NEXTP:
                                     dt = DateTime.ParseExact(j(RowNum)(Col(2)), "MMddyyyy", System.Globalization.DateTimeFormatInfo.InvariantInfo).Date
                                 Catch
                                     dt = #1/1/1900#
-                                    GoTo skip
+                                    '  GoTo skip
                                 End Try
                                 If dt.Year > 1900 Then
                                     .Add("@" & Col(0), SqlDbType.Date).Value = dt

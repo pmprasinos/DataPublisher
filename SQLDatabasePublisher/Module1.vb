@@ -61,7 +61,7 @@ Module module1
         End If
 
         '#####if there is an error in this program more than 2 times, the DataColl computer will be restarted#####
-        If Environment.MachineName = "SLREPORT01" Or UCase(Environment.UserName) = "DATACOLLSL" Or UCase(Environment.UserName) = "PPRASINOS" Then
+        If UCase(Environment.UserName) = "DATACOLLSL" Then
             If CheckIfRunning("SQLDatabasePublisher") > 1 Or Hour(Now) = 10 Then
                 System.Diagnostics.Process.Start("shutdown", "-r -f -t 00")
             ElseIf CheckIfRunning("EXCEL") > 0 And Environment.MachineName = "SLREPORT01" Then
@@ -74,21 +74,24 @@ Module module1
             IsUser = True
             Console.Write("Enter FromDate using format 'MMDDYYYY': ")
             AfterDate = Console.ReadLine
-            Console.Write("   Enter ToDate using format 'MMDDYYYY': " & MakeWebfocusDate(Today))
+            Console.Write("  Enter ToDate using format 'MMDDYYYY': " & MakeWebfocusDate(Today))
             Console.CursorLeft = Console.CursorLeft - 8
             BeforeDate = Console.ReadLine()
             If BeforeDate = "" Then BeforeDate = MakeWebfocusDate(Today)
-            Console.WriteLine("Type 'Y' to delete and replace (else refresh)")
+            Console.WriteLine("Type 'Y' to force WebFocus pull( Takes much longer, only use if errors occuring)")
+            Console.WriteLine("Otherwise, press any key to continue...")
             If Console.ReadKey.KeyChar = "Y" Then
-
+                WebFocusPull = True
             End If
+            'AfterDate = MakeWebfocusDate(Today.AddDays(-1))
+            UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
+            UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
+            UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
+            UpdateTimes(0)(0) = "OPEN_ORDERS" : UpdateTimes(0)(1) = Today.AddDays(-2)
 
         End If
         'UpdateTimes(0)(0) = "OPEN_ORDERS" : UpdateTimes(0)(1) = Today.AddDays(-2)
-        AfterDate = MakeWebfocusDate(Today.AddDays(-7))
-        UpdateTimes(1)(0) = "TPUT" : UpdateTimes(1)(1) = Today.AddDays(-2)
-        UpdateTimes(2)(0) = "SHIPMENTS" : UpdateTimes(2)(1) = Today.AddDays(-2)
-        UpdateTimes(3)(0) = "CERT_ERRORS" : UpdateTimes(3)(1) = Today.AddDays(-2)
+
         'Try
         Dim OpensRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=custom_open_order_reportshtml.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=209&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&BIP_rand=13377"
         Dim TputRef As String = "http://webfocus.pccstructurals.com/ibi_apps/run.bip?BIP_REQUEST_TYPE=BIP_RUN&BIP_folder=IBFS%253A%252FWFC%252FRepository%252Fqavistes%252F~gen_slan-8ball&BIP_item=ESH_and_TPUT_FOR_FLEX_for_sql.fex&WF_STYLE_HEIGHT=353&WF_STYLE_WIDTH=340&WF_STYLE_UNITS=PIXELS&IBIWF_redirNewWindow=true&WF_STYLE=IBFS%3A%2FFILE%2FIBI_HTML_DIR%2Fjavaassist%2Fintl%2FEN%2Fcombine_templates%2FENInformationBuilders_Medium1.sty&WF_THEME=BIPFlat&BIP_CACHE=100000&LE_TP_DATE_COMPELTED=" + BeforeDate + "&TP_DATE_COMPELTED=" + AfterDate + "&BIP_rand=21066"
@@ -484,7 +487,9 @@ Module module1
                 Else
 
                     ' j = FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref)
-                    Dim t As String() = Split(FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref), vbCrLf)
+                    Dim y As String = FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref)
+                    y = Replace(y, "," & Chr(34) & "," & Chr(34), ",")
+                    Dim t As String() = Split(y, vbCrLf)
                     Dim TempList As New List(Of String())
                         For Each s In t
                         TempList.Add(Split(Replace(s, "CE, W", ""), ","))
@@ -502,7 +507,7 @@ Module module1
                     Try : UID = UpdateStatus(2, "RECIEVED", TableName, False) : Catch : End Try
 
                     cmd.CommandType = CommandType.Text
-                    cmd.CommandText = "SELECT column_name, data_type FROM wflocal.INFORMATION_SCHEMA.COLUMNS" & vbCrLf &
+                    cmd.CommandText = "Select column_name, data_type FROM wflocal.INFORMATION_SCHEMA.COLUMNS" & vbCrLf &
                             "WHERE wflocal.INFORMATION_SCHEMA.COLUMNS.TABLE_NAME='" & TableName & "'"
 
                     Dim ColumnInfo As New List(Of String())

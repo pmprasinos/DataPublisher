@@ -69,7 +69,7 @@ Module module1
                 FileIO.FileSystem.WriteAllText("\\slfs01\shared\prasinos\8ball\Logs.txt", Now() & "    EXCEL caused shutdown", True)
                 If CheckIfRunning("EXCEL") > 0 And UCase(Environment.MachineName) = "SLREPORT01" Then System.Diagnostics.Process.Start("shutdown", "-r -f -t 00")
             End If
-        ElseIf ucase(Environment.UserName) <> "PPRASINOS" Then
+        ElseIf ucase(Environment.UserName) <> "PHIL.PRASINOS" Then
             '#####Force update if pull is not automated###
             IsUser = True
             Console.Write("Enter FromDate using format 'MMDDYYYY': ")
@@ -210,10 +210,8 @@ Module module1
 
             If UCase(Environment.UserName) <> "DATACOLLSL" Then Threading.Thread.Sleep(50)
             If Environment.UserName = "DATACOLLSL" And Hour(Now) Mod 2 = 1 And Minute(Now) < 5 Then
-                ''''''wf = Nothing : wf = New WebfocusModule : wf.LogIn(LogInInfo(0), LogInInfo(1))
-                ''''''Console.WriteLine("UPDATING CDCS DATA")
-                ''''''wf.GetReporthAsync("qavistes/qavistes.htm#certificateo", "pprasinos:pprasino/sl_wipfg_quality_check_inspbeyondhtml.fex", "certs")
-                UpdateStatus(1, " SUBMITTED - CERTS", "CERT_ERRORS", False)
+
+            UpdateStatus(1, " SUBMITTED - CERTS", "CERT_ERRORS", False)
                 UpdateAppend(CDCSRef, "certs")
                 ''''''UpdateAppend(wf, GetWFIds(wf.GetRequests))
 
@@ -422,10 +420,10 @@ Module module1
                                 'Debug.Print(RepURL)
                                 IE.Navigate(RepURL)
                                 For X = 0 To 10
-                                    Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(10)
+                                Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(30) : Loop : Sleep(10)
                                 Next X
-                                Threading.Thread.Sleep(100)
-                                i = 1000000
+
+                            i = 1000000
                             End If
                         End If
                     Catch
@@ -434,7 +432,7 @@ Module module1
                 Loop
             End If
         For X = 0 To 20
-            Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(40) : Loop : Sleep(50)
+            Do Until IE.Busy = False And IE.ReadyState = 4 : Sleep(20) : Loop : Sleep(50)
         Next X
         doc = IE.Document
             Dim doc1 As String = doc.body.outerHTML
@@ -464,10 +462,10 @@ Module module1
                     '#updates one record so that other machines do not start a pull while one is waiting for a report
                     If InStr(RespNames, "lots") <> 0 Then
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.CERT_ERRORS SET ACTIVE = 2 WHERE ACTIVE <> 0"
-                    'cmd.ExecuteNonQuery()
+                    cmd.ExecuteNonQuery()
                 ElseIf InStr(RespNames, "ships") <> 0 Then
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.SHIPMENTS SET INVOICE_NO = 'PACK(1).pdf' WHERE INVOICE_NO = 'PACK(1).pdf'"
-                    'cmd.ExecuteNonQuery()
+                    cmd.ExecuteNonQuery()
                 ElseIf InStr(RespNames, "tput") Then
                         cmd.CommandText = "UPDATE WFLOCAL.DBO.TPUT SET TPUT_VALUE = 0 WHERE ESH = 7.9144 AND WORKORDERNO = '1012548-00169' "
                     ' cmd.ExecuteNonQuery()
@@ -684,7 +682,7 @@ NEXTP:
             Next
             headerst = Left(headerst, (Len(headerst) - 1)) & vbCrLf
             'If Environment.MachineName = "SLPPRASINOSLT01" or Environment.MachineName = "SLAN-1ZNFXZ1" Then
-            FileIO.FileSystem.WriteAllText("\\slfs01\public\VisDownloads\" & "OPENS" & ".csv", headerst, False)
+            ' FileIO.FileSystem.WriteAllText("\\slfs01\public\VisDownloads\" & "OPENS" & ".csv", headerst, False)
         Else
             Dim t As String() = Split(FileIO.FileSystem.ReadAllText(Replace(ref, ".csv", "_headers.csv")) & FileIO.FileSystem.ReadAllText(ref), vbCrLf)
 
